@@ -10,7 +10,6 @@ fi
 
 PROJECT="`basename $1`"
 APPNAME=`echo $PROJECT | sed s/\\\\.//g`
-echo $APPNAME
 
 # Read and export config
 . $PROJECT/config
