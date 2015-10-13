@@ -1,10 +1,12 @@
 #!/bin/bash
+
 cat << EOF
 
 wordpress:
   image: wordpress
   links:
     - db:mysql
+    - mail:mail
   ports:
     - $WORDPRESS_PORT:80
   volumes_from:
@@ -29,6 +31,15 @@ phpmyadmin:
   ports:
     - $PHPMYADMIN_PORT:80
 
+sftp:
+  image: jeko/sftp:latest
+  restart: always
+  volumes_from:
+    - webdata
+  ports:
+    - "$SFTP_PORT:22"
+  command: "admin:$ADMIN_PASSWORD:33::/var/www"
+
 backup:
   image: aveltens/wordpress-backup
   volumes:
@@ -40,7 +51,7 @@ backup:
   restart: always
 
 db:
-  image: mysql/mysql-server
+  image: mysql:5.6
   restart: always
   volumes_from:
     - dbdata
@@ -49,6 +60,10 @@ db:
     - MYSQL_USER=admin
     - MYSQL_PASSWORD=$ADMIN_PASSWORD
     - MYSQL_DATABASE=wordpress
+
+mail:
+  image: hectane/hectane:0.2.1
+  restart: always
 
 dbdata:
   image: busybox

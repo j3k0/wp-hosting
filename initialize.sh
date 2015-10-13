@@ -15,13 +15,13 @@ fi
 cd $PROJECT
 
 # MySQL needs time to start
-docker-compose up -d db
+docker-compose up -d db webdata
 echo "Waiting 60s for mysql to be ready"
 sleep 60
 
 # phpMyAdmin
 echo "Create phpMyAdmin database user"
-docker run --rm -it --link ${APPNAME}_db_1:db mysql/mysql-server mysql -hdb -uroot -p$ROOT_PASSWORD -e "GRANT ALL PRIVILEGES ON phpmyadmin.* TO 'admin'@'%';"
+docker run --rm -it --link ${APPNAME}_db_1:db mysql mysql -hdb -uroot -p$ROOT_PASSWORD -e "GRANT ALL PRIVILEGES ON phpmyadmin.* TO 'admin'@'%';"
 
 echo "You can now start the server with the command below:"
 echo

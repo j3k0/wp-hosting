@@ -15,6 +15,7 @@ APPNAME=`echo $PROJECT | sed s/\\\\.//g`
 . $PROJECT/config
 export WORDPRESS_PORT
 export PHPMYADMIN_PORT
+export SFTP_PORT
 export ROOT_PASSWORD
 export ADMIN_PASSWORD
 if [ "x$SALT" = "x" ]; then
