@@ -12,6 +12,8 @@ if test -e $PROJECT/docker-compose.yml; then
     echo " - phpMyAdmin: $PHPMYADMIN_PORT"
     echo
     echo "Make sure to setup your links into the master proxy."
+    echo 
+    echo "SFTP is open on port $SFTP_PORT"
     echo
 else
     echo "ERROR: no docker-compose.yml file"

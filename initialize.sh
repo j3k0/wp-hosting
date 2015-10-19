@@ -12,7 +12,14 @@ if test -e $PROJECT/docker-compose.yml; then
     exit 1
 fi
 ./_scripts/docker-compose.yml.sh > $PROJECT/docker-compose.yml
+./_scripts/nginx-site.sh > $PROJECT/nginx-site
 cd $PROJECT
+
+# Install the nginx config
+if ! test -e /etc/nginx/sites-enabled/$PROJECT; then
+    echo "Installing /etc/nginx/sites-enabled/$PROJECT"
+    ln -s $(pwd)/nginx-site /etc/nginx/sites-enabled/$PROJECT
+fi
 
 # MySQL needs time to start
 docker-compose up -d db webdata
@@ -25,5 +32,9 @@ docker run --rm -it --link ${APPNAME}_db_1:db mysql mysql -hdb -uroot -p$ROOT_PA
 
 echo "You can now start the server with the command below:"
 echo
-echo "./start.sh $PROJECT"
+echo "    ./start.sh $PROJECT"
+echo
+echo "You may also have to reload nginx config with:"
+echo
+echo "    service nginx reload"
 echo

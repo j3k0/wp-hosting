@@ -13,6 +13,8 @@ APPNAME=`echo $PROJECT | sed s/\\\\.//g`
 
 # Read and export config
 . $PROJECT/config
+export PROJECT
+export APPNAME
 export WORDPRESS_PORT
 export PHPMYADMIN_PORT
 export SFTP_PORT
