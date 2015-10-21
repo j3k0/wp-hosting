@@ -23,21 +23,31 @@ Please find below the credential for $PROJECT
 Website URL:
 
 $WWW_URLS
-Wordpress Administrator:  admin
+Wordpress Administrator: admin
 Wordpress admin Password: $ADMIN_PASSWORD
 
 ** phpMyAdmin **
 
-phpMyAdmin URL:      $PHPMYADMIN_URLS
+phpMyAdmin URL:
+$PHPMYADMIN_URLS
 phpMyAdmin Username: admin
 phpMyAdmin Password: $ADMIN_PASSWORD
 
 ** SFTP **
 
-SFTP Host:     sftp.$PROJECT:$SFTP_PORT
+SFTP Host: sftp.$PROJECT:$SFTP_PORT
 SFTP Username: admin
 SFTP Password: $ADMIN_PASSWORD
 
---
+** DNS **
+
+For DNS setup, we will need the following:
+
+$PROJECT. CNAME $PROJECT.web.cdn.anycast.me.
+www.$PROJECT. CNAME www.$PROJECT.web.cdn.anycast.me.
+sftp.$PROJECT. CNAME sftp.$PROJECT.ggs.ovh.
+phpmyadmin.$PROJECT. CNAME phpmyadmin.$PROJECT.ggs.ovh.
+
+Please let me know if you have any questions.
 
 EOF

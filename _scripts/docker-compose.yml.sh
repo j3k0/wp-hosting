@@ -64,6 +64,10 @@ db:
 mail:
   image: hectane/hectane:0.2.1
   restart: always
+  volumes:
+    - /data
+  environment:
+    - DISABLE_SSL_VERIFICATION=1
 
 dbdata:
   image: busybox
