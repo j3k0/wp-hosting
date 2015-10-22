@@ -72,7 +72,7 @@ db:
     - MYSQL_PASSWORD=$ADMIN_PASSWORD
     - MYSQL_DATABASE=wordpress
   restart: always
-  mem_limit: 512M
+  mem_limit: 768M
   memswap_limit: 256M
   cpu_shares: 1024
 
