@@ -1,2 +1,2 @@
 #!/bin/bash
-docker stats `docker inspect --format='{{.Name}}' $(sudo docker ps -aq --no-trunc)`
+docker stats --no-stream=true `docker inspect --format='{{.Name}}' $(sudo docker ps -aq --no-trunc)`
