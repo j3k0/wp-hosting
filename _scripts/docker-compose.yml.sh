@@ -11,15 +11,17 @@ wordpress:
     - $WORDPRESS_PORT:80
   volumes_from:
     - webdata
-  restart: always
   environment:
     - WORDPRESS_DB_NAME=wordpress
     - WORDPRESS_DB_USER=admin
     - WORDPRESS_DB_PASSWORD=$ADMIN_PASSWORD
+  restart: always
+  mem_limit: 512M
+  memswap_limit: 128M
+  cpu_shares: 1024
 
 phpmyadmin:
   image: corbinu/docker-phpmyadmin
-  restart: always
   links:
     - db:mysql
   environment:
@@ -30,18 +32,25 @@ phpmyadmin:
     - PMA_PASSWORD=$ADMIN_PASSWORD
   ports:
     - $PHPMYADMIN_PORT:80
+  restart: always
+  mem_limit: 128M
+  memswap_limit: 128M
+  cpu_shares: 256
 
 sftp:
   image: jeko/sftp:latest
-  restart: always
   volumes_from:
     - webdata
   ports:
     - "$SFTP_PORT:22"
   command: "admin:$ADMIN_PASSWORD:33::/var/www"
+  restart: always
+  mem_limit: 64M
+  memswap_limit: 64M
+  cpu_shares: 256
 
 backup:
-  image: aveltens/wordpress-backup
+  image: jeko/wordpress-backup
   volumes:
     - ./backups:/backups
   volumes_from:
@@ -49,10 +58,12 @@ backup:
   links:
     - db:mysql
   restart: always
+  mem_limit: 64M
+  memswap_limit: 32M
+  cpu_shares: 16
 
 db:
   image: mysql:5.6
-  restart: always
   volumes_from:
     - dbdata
   environment:
@@ -60,14 +71,21 @@ db:
     - MYSQL_USER=admin
     - MYSQL_PASSWORD=$ADMIN_PASSWORD
     - MYSQL_DATABASE=wordpress
+  restart: always
+  mem_limit: 512M
+  memswap_limit: 256M
+  cpu_shares: 1024
 
 mail:
   image: hectane/hectane:0.2.1
-  restart: always
   volumes:
     - /data
   environment:
     - DISABLE_SSL_VERIFICATION=1
+  restart: always
+  mem_limit: 64M
+  memswap_limit: 64M
+  cpu_shares: 256
 
 dbdata:
   image: busybox
