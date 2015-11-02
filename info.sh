@@ -21,11 +21,7 @@ Please find below the credential for $PROJECT
 ** Wordpress **
 
 Website URL:
-
 $WWW_URLS
-Wordpress Administrator: admin
-Wordpress admin Password: $ADMIN_PASSWORD
-
 ** phpMyAdmin **
 
 phpMyAdmin URL:
