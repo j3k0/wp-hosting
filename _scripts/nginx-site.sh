@@ -4,6 +4,7 @@ cat << EOF
 
 server {
 	listen 80;
+	client_max_body_size 32m;
 	server_name $PROJECT www.$PROJECT;
 	location / {
 		proxy_pass http://127.0.0.1:$WORDPRESS_PORT;
@@ -13,6 +14,7 @@ server {
 
 server {
 	listen 80;
+	client_max_body_size 32m;
 	server_name phpmyadmin.$PROJECT;
 	location / {
 		proxy_pass http://127.0.0.1:$PHPMYADMIN_PORT;
