@@ -13,6 +13,7 @@ if test -e $PROJECT/docker-compose.yml; then
 fi
 ./_scripts/docker-compose.yml.sh > $PROJECT/docker-compose.yml
 ./_scripts/nginx-site.sh > $PROJECT/nginx-site
+./_scripts/php.ini.sh > $PROJECT/php.ini
 cd $PROJECT
 
 # Install the nginx config

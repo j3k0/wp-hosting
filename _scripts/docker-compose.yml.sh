@@ -9,6 +9,8 @@ wordpress:
     - mail:mail
   ports:
     - $WORDPRESS_PORT:80
+  volumes:
+    - ./php.ini:/usr/local/etc/php/php.ini
   volumes_from:
     - webdata
   environment:
