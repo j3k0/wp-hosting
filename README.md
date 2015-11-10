@@ -46,6 +46,12 @@ Restore a backup.
 
 Display server logs.
 
+#### import.sh &lt;project&gt; &lt;date&gt;
+
+Import a project just copied from another host.
+
+Will update the config file to use available port on this host and restore the specified backup.
+
 ## Import an existing website
 
 ## Migrate a website to another server

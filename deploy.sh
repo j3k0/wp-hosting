@@ -8,6 +8,6 @@ PROJECT="$1"
 ./initialize.sh $PROJECT
 ./start.sh $PROJECT
 
-sudo nginx reload
+sudo service nginx reload
 
 ./info.sh $PROJECT

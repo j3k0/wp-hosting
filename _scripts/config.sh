@@ -5,6 +5,13 @@ P1=`./password.sh`
 P2=`./password.sh`
 P3=`./password.sh`
 
+if test -e "../$1/config"; then
+	. ../$1/config
+	P1=$ROOT_PASSWORD
+	P2=$ADMIN_PASSWORD
+	P3=$SALT
+fi
+
 LAST_PORT="`cat ../*/config|grep _PORT|cut -d= -f2|sort -n|tail -1 || echo 8300`"
 BASE_PORT=$((LAST_PORT + 8))
 WORDPRESS_PORT=$((BASE_PORT + 0))
