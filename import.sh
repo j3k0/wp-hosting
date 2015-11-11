@@ -1,5 +1,12 @@
 #!/bin/sh
 
+# This script allows to import a blog from another host using wp-hosting
+#
+# 1. run a backup on the remote hosts.
+# 2. `scp` (or something) to here.
+# 3. run ./import.sh PROJECT BACKUPNAME
+#
+
 # Load config
 . _scripts/base.sh
 

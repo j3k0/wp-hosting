@@ -20,6 +20,12 @@ export PHPMYADMIN_PORT
 export SFTP_PORT
 export ROOT_PASSWORD
 export ADMIN_PASSWORD
+
+if [ "x$DOMAIN" = "x" ]; then
+    DOMAIN=$PROJECT
+fi
+export DOMAIN
+
 if [ "x$SALT" = "x" ]; then
     SALT="$RANDOM-$RANDOM-$RANDOM-$RANDOM"
 fi
