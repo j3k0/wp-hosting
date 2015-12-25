@@ -3,8 +3,9 @@ set -e
 cd "`dirname $0`"
 
 PROJECT="$1"
+DOMAIN="$2"
 
-./create.sh $PROJECT
+./create.sh $PROJECT $DOMAIN
 ./initialize.sh $PROJECT
 ./start.sh $PROJECT
 
