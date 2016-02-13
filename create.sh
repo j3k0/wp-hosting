@@ -8,8 +8,8 @@ if [ "x$1" = "x" ] || [ "x$2" = "x" ]; then
     echo "Generate a project with a sample config file: $PROJECT/config"
     exit 1
 fi
-PROJECT="$1"
-DOMAIN="$2"
+export PROJECT="$1"
+export DOMAIN="$2"
 
 if [ _`echo $PROJECT | cut -d. -f1` != _wp ]; then
     echo "Project name must start with wp."
