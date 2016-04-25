@@ -10,6 +10,10 @@ server {
 		proxy_pass http://127.0.0.1:$WORDPRESS_PORT;
                 include /etc/nginx/proxy_params;
 	}
+
+    listen 443 ssl;
+    ssl_certificate ${PWD}/${PROJECT}/ssl/nginx.crt;
+    ssl_certificate_key ${PWD}/${PROJECT}/ssl/nginx.key;
 }
 
 server {
@@ -20,6 +24,10 @@ server {
 		proxy_pass http://127.0.0.1:$PHPMYADMIN_PORT;
                 include /etc/nginx/proxy_params;
 	}
+
+    listen 443 ssl;
+    ssl_certificate ${PWD}/${PROJECT}/ssl/nginx.crt;
+    ssl_certificate_key ${PWD}/${PROJECT}/ssl/nginx.key;
 }
 
 EOF

@@ -25,6 +25,12 @@ fi
 mkdir -p $PROJECT
 ./_scripts/config.sh > $PROJECT/config
 
+# Create SSL certificates (if it doesn't exist)
+if test ! -e $PROJECT/ssl; then
+    mkdir $PROJECT/ssl
+    openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout $PROJECT/ssl/nginx.key -out $PROJECT/ssl/nginx.crt
+fi
+
 echo "You can now initialize the server with the folowing command:"
 echo
 echo "    ./initialize.sh $PROJECT"
