@@ -11,12 +11,13 @@ WWW_URLS="$WWW_URLS - http://$i
 done
 
 for i in $PHPMYADMIN_HOSTS; do
-PHPMYADMIN_URLS="http://$i $PHPMYADMIN_URLS"
+PHPMYADMIN_URLS="$PHPMYADMIN_URLS - http://$i
+"
 done
 
 cat << EOF
 
-Please find below the credential for $PROJECT
+Please find below the credential for $DOMAIN
 
 ** Wordpress **
 
@@ -31,7 +32,8 @@ phpMyAdmin Password: $ADMIN_PASSWORD
 
 ** SFTP **
 
-SFTP Host: sftp.$PROJECT:$SFTP_PORT
+SFTP Host: $PROJECT.ggs.ovh
+SFTP Port: $SFTP_PORT
 SFTP Username: admin
 SFTP Password: $ADMIN_PASSWORD
 
@@ -39,10 +41,10 @@ SFTP Password: $ADMIN_PASSWORD
 
 For DNS setup, we will need the following:
 
-$PROJECT. CNAME $PROJECT.web.cdn.anycast.me.
-www.$PROJECT. CNAME www.$PROJECT.web.cdn.anycast.me.
-sftp.$PROJECT. CNAME sftp.$PROJECT.ggs.ovh.
-phpmyadmin.$PROJECT. CNAME phpmyadmin.$PROJECT.ggs.ovh.
+$DOMAIN. A 46.105.198.84
+www.$DOMAIN. CNAME www.$DOMAIN.web.cdn.anycast.me.
+sftp.$DOMAIN. CNAME $PROJECT.ggs.ovh.
+phpmyadmin.$DOMAIN. CNAME $PROJECT.ggs.ovh.
 
 Please let me know if you have any questions.
 
