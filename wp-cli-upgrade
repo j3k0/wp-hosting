@@ -1,0 +1,3 @@
+#!/bin/bash
+curl -o _scripts/wp https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+chmod +x _scripts/wp

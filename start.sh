@@ -7,6 +7,7 @@ if test -e $PROJECT/docker-compose.yml; then
     docker-compose up -d
     cd ..
     sleep 2
+    ./fix-permissions.sh $PROJECT
     if ./wp-cli.sh $PROJECT core is-installed; then
         echo "Wordpress already installed."
     else
@@ -15,6 +16,7 @@ if test -e $PROJECT/docker-compose.yml; then
         ./wp-cli.sh $PROJECT plugin install hectane --activate
         ./wp-cli.sh $PROJECT option set hectane_settings '{"host":"mail","port":"8025","tls_ignore":"on","username":"","password":""}' --format=json
     fi
+    ./fix-permissions.sh $PROJECT
     echo
     echo "$PROJECT is available at the following ports:"
     echo
