@@ -1,0 +1,5 @@
+#!/bin/bash
+set -e
+cd `dirname $0`
+./cloudflare-cli/build.sh
+docker run --rm -it -v `dirname $(pwd)`/cfcli.yml:/root/.cfcli.yml cloudflare-cli cfcli "$@"

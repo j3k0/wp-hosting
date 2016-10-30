@@ -22,48 +22,6 @@ wordpress:
   memswap_limit: 128M
   cpu_shares: 1024
 
-phpmyadmin:
-  image: corbinu/docker-phpmyadmin
-  links:
-    - db:mysql
-  environment:
-    - MYSQL_USERNAME=root
-    - MYSQL_PASSWORD=$ROOT_PASSWORD
-    - PMA_SECRET=$SALT
-    - PMA_USERNAME=admin
-    - PMA_PASSWORD=$ADMIN_PASSWORD
-  ports:
-    - $PHPMYADMIN_PORT:80
-  restart: always
-  mem_limit: 128M
-  memswap_limit: 128M
-  cpu_shares: 256
-
-sftp:
-  image: jeko/sftp:latest
-  volumes_from:
-    - webdata
-  ports:
-    - "$SFTP_PORT:22"
-  command: "admin:$ADMIN_PASSWORD:33::/var/www"
-  restart: always
-  mem_limit: 64M
-  memswap_limit: 64M
-  cpu_shares: 256
-
-backup:
-  image: jeko/wordpress-backup
-  volumes:
-    - ./backups:/backups
-  volumes_from:
-    - webdata
-  links:
-    - db:mysql
-  restart: always
-  mem_limit: 64M
-  memswap_limit: 32M
-  cpu_shares: 16
-
 db:
   image: mysql:5.6
   volumes_from:
@@ -100,5 +58,55 @@ webdata:
   command: echo ready
   volumes:
     - /var/www/html
+
+backup:
+  image: jeko/wordpress-backup
+  volumes:
+    - ./backups:/backups
+  volumes_from:
+    - webdata
+  links:
+    - db:mysql
+  restart: always
+  mem_limit: 64M
+  memswap_limit: 32M
+  cpu_shares: 16
+
+EOF
+
+if [ "x$PLAYGROUND" != "x" ]; then
+    exit 0
+fi
+
+cat << EOF
+
+phpmyadmin:
+  image: corbinu/docker-phpmyadmin
+  links:
+    - db:mysql
+  environment:
+    - MYSQL_USERNAME=root
+    - MYSQL_PASSWORD=$ROOT_PASSWORD
+    - PMA_SECRET=$SALT
+    - PMA_USERNAME=admin
+    - PMA_PASSWORD=$ADMIN_PASSWORD
+  ports:
+    - $PHPMYADMIN_PORT:80
+  restart: always
+  mem_limit: 128M
+  memswap_limit: 128M
+  cpu_shares: 256
+
+sftp:
+  image: jeko/sftp:latest
+  volumes_from:
+    - webdata
+  ports:
+    - "$SFTP_PORT:22"
+  command: "admin:$ADMIN_PASSWORD:33::/var/www"
+  restart: always
+  mem_limit: 64M
+  memswap_limit: 64M
+  cpu_shares: 256
 
 EOF
