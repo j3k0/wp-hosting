@@ -9,7 +9,7 @@ if test ! -e $1/config; then
 fi
 
 PROJECT="`basename $1`"
-APPNAME=`echo $PROJECT | sed s/\\\\.//g`
+APPNAME=`echo $PROJECT | sed s/\\\\.//g | sed s/-//g`
 
 # Read and export config
 . $PROJECT/config

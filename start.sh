@@ -17,6 +17,13 @@ if test -e $PROJECT/docker-compose.yml; then
         ./wp-cli.sh $PROJECT option set hectane_settings '{"host":"mail","port":"8025","tls_ignore":"on","username":"","password":""}' --format=json
     fi
     ./fix-permissions.sh $PROJECT
+
+    # Add the PHP "zip" extension
+    function docker_php_ext_install() {
+        docker exec -it ${APPNAME}_wordpress_1 sh -c "test -e /usr/local/lib/php/extensions/*/zip.so || docker-php-ext-install $1"
+    }
+    docker_php_ext_install zip
+
     echo
     echo "$PROJECT is available at the following ports:"
     echo
