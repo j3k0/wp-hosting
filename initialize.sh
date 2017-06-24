@@ -14,10 +14,12 @@ fi
 ./_scripts/docker-compose.yml.sh > $PROJECT/docker-compose.yml
 ./_scripts/nginx-site.sh > $PROJECT/nginx-site
 ./_scripts/php.ini.sh > $PROJECT/php.ini
-cd $PROJECT
 
 # Setup domain name with cloudflare
 ./cfcli.sh --type CNAME add $PROJECT.ggs.ovh www-01.ggs.ovh
+./cfcli.sh --type CNAME add phpmyadmin.$PROJECT.ggs.ovh www-01.ggs.ovh
+
+cd $PROJECT
 
 # Install the nginx config
 if ! test -e /etc/nginx/sites-enabled/$PROJECT; then
