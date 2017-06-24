@@ -16,6 +16,9 @@ fi
 ./_scripts/php.ini.sh > $PROJECT/php.ini
 cd $PROJECT
 
+# Setup domain name with cloudflare
+./cfcli.sh --type CNAME add $PROJECT.ggs.ovh www-01.ggs.ovh
+
 # Install the nginx config
 if ! test -e /etc/nginx/sites-enabled/$PROJECT; then
     echo "Installing /etc/nginx/sites-enabled/$PROJECT"
