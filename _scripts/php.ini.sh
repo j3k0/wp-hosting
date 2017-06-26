@@ -17,4 +17,6 @@ short_open_tag = Off
 url_rewriter.tags = "a=href,area=href,frame=src,input=src,form=fakeentry"
 variables_order = "GPCS"
 
+extension=imagick.so
+
 EOF
