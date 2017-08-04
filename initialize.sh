@@ -11,6 +11,9 @@ if test -e $PROJECT/docker-compose.yml; then
     echo
     exit 1
 fi
+
+docker build -t fovea/wordsearch docker
+
 ./_scripts/docker-compose.yml.sh > $PROJECT/docker-compose.yml
 ./_scripts/nginx-site.sh > $PROJECT/nginx-site
 ./_scripts/php.ini.sh > $PROJECT/php.ini

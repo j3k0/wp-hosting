@@ -3,7 +3,7 @@
 cat << EOF
 
 wordpress:
-  image: wordpress
+  image: fovea/wordpress
   links:
     - db:mysql
     - mail:mail
