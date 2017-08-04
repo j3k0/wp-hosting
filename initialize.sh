@@ -15,19 +15,19 @@ fi
 ./_scripts/nginx-site.sh > $PROJECT/nginx-site
 ./_scripts/php.ini.sh > $PROJECT/php.ini
 
-# Setup domain name with cloudflare
-./cfcli.sh --type CNAME add $PROJECT.ggs.ovh www-01.ggs.ovh
-./cfcli.sh --type CNAME add phpmyadmin.$PROJECT.ggs.ovh www-01.ggs.ovh
+echo Setup domain name with cloudflare
+./cfcli.sh --type CNAME add $PROJECT.ggs.ovh `hostname`.ggs.ovh || true
+./cfcli.sh --type CNAME add phpmyadmin.$PROJECT.ggs.ovh `hostname`.ggs.ovh || true
 
 cd $PROJECT
 
-# Install the nginx config
+echo Install the nginx config
 if ! test -e /etc/nginx/sites-enabled/$PROJECT; then
     echo "Installing /etc/nginx/sites-enabled/$PROJECT"
     ln -s $(pwd)/nginx-site /etc/nginx/sites-enabled/$PROJECT
 fi
 
-# MySQL needs time to start
+echo MySQL needs time to start
 docker-compose up -d db webdata
 echo "Waiting 60s for mysql to be ready"
 sleep 60
