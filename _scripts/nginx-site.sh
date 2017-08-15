@@ -12,6 +12,7 @@ server {
 	}
 
     listen 443 ssl;
+    include ${PWD}/config/nginx_ssl_params;
     ssl_certificate ${PWD}/${PROJECT}/ssl/nginx.crt;
     ssl_certificate_key ${PWD}/${PROJECT}/ssl/nginx.key;
 }
@@ -26,6 +27,7 @@ server {
 	}
 
     listen 443 ssl;
+    include ${PWD}/config/nginx_ssl_params;
     ssl_certificate ${PWD}/${PROJECT}/ssl/nginx.crt;
     ssl_certificate_key ${PWD}/${PROJECT}/ssl/nginx.key;
 }

@@ -12,8 +12,14 @@ if test -e $PROJECT/docker-compose.yml; then
     exit 1
 fi
 
+echo Make sure docker image is built and up to date
+docker pull wordsearch
 docker build -t fovea/wordsearch docker
 
+echo Make sure all necessary hosting files are in place
+./configure.sh
+
+echo Generate project files
 ./_scripts/docker-compose.yml.sh > $PROJECT/docker-compose.yml
 ./_scripts/nginx-site.sh > $PROJECT/nginx-site
 ./_scripts/php.ini.sh > $PROJECT/php.ini
