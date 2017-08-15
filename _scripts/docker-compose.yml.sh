@@ -37,7 +37,7 @@ db:
   cpu_shares: 1024
 
 mail:
-  image: hectane/hectane:0.2.1
+  image: hectane/hectane:0.3.1
   volumes:
     - /data
   environment:

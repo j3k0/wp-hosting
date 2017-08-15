@@ -18,6 +18,7 @@ if test -e $PROJECT/docker-compose.yml; then
     fi
     ./fix-permissions.sh $PROJECT
     ./install-extensions.sh $PROJECT
+    docker cp _scripts/info.php ${APPNAME}_wordpress_1:/var/www/html/$APPNAME-info.php
 
     echo
     echo "$PROJECT is available at the following ports:"
