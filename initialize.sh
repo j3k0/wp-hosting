@@ -13,8 +13,8 @@ if test -e $PROJECT/docker-compose.yml; then
 fi
 
 echo Make sure docker image is built and up to date
-docker pull wordsearch
-docker build -t fovea/wordsearch docker
+docker pull wordpress
+docker build -t fovea/wordpress docker
 
 echo Make sure all necessary hosting files are in place
 ./configure.sh

@@ -5,7 +5,7 @@ P1=`./password.sh`
 P2=`./password.sh`
 P3=`./password.sh`
 
-if test -e "../$1/config"; then
+if [ ! -z $1 ] && test -e "../$1/config"; then
 	. ../$1/config
 	P1=$ROOT_PASSWORD
 	P2=$ADMIN_PASSWORD
