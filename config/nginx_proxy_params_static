@@ -1,0 +1,15 @@
+proxy_set_header Host $http_host;
+proxy_set_header X-Real-IP $remote_addr;
+proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+proxy_set_header X-Forwarded-Proto $scheme;
+
+expires 7d;
+
+proxy_cache            cacheone;
+proxy_cache_valid      any 7d;
+proxy_cache_use_stale  error timeout invalid_header updating
+                       http_500 http_502 http_503 http_504;
+
+proxy_ignore_headers   Cache-Control;
+add_header             Pragma public;
+add_header             Cache-Control "public";

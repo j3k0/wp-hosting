@@ -8,6 +8,7 @@ post_max_size = 32M
 display_errors = Off
 error_reporting = E_ALL & ~E_DEPRECATED & ~E_STRICT
 max_input_time = 300
+max_execution = 300
 output_buffering = 4096
 register_argc_argv = Off
 request_order = "GP"
