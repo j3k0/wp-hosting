@@ -3,9 +3,7 @@
 . _scripts/base.sh
 
 if test -e $PROJECT/docker-compose.yml; then
-    cd $PROJECT
-    docker-compose up -d
-    cd ..
+    ./docker-compose.sh $PROJECT up -d
     sleep 3
     ./fix-permissions.sh $PROJECT
     if ./wp-cli.sh $PROJECT core is-installed; then
@@ -13,8 +11,8 @@ if test -e $PROJECT/docker-compose.yml; then
     else
         echo "Installing Wordpress..."
         ./wp-cli.sh $PROJECT core install --url=http://$DOMAIN --title=$DOMAIN --admin_user=admin --admin_password=$ADMIN_PASSWORD --admin_email=admin@$DOMAIN
-        ./wp-cli.sh $PROJECT plugin install hectane --activate
-        ./wp-cli.sh $PROJECT option set hectane_settings '{"host":"mail","port":"8025","tls_ignore":"on","username":"","password":""}' --format=json
+        # ./wp-cli.sh $PROJECT plugin install hectane --activate
+        # ./wp-cli.sh $PROJECT option set hectane_settings '{"host":"mail","port":"8025","tls_ignore":"on","username":"","password":""}' --format=json
     fi
     ./fix-permissions.sh $PROJECT
     ./install-extensions.sh $PROJECT

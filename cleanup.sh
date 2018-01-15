@@ -2,13 +2,11 @@
 
 . _scripts/base.sh
 
-# Generate the docker-compose file
 if test -e $PROJECT/docker-compose.yml; then
-    cd $PROJECT
-    docker-compose stop
-    docker-compose rm
+    ./docker-compose.sh $PROJECT stop
+    ./docker-compose.sh $PROJECT rm
     echo "rm docker-compose.yml"
-    rm -f docker-compose.yml
+    rm -f $PROJECT/docker-compose.yml
     echo "rm nginx config"
     rm -f /etc/nginx/sites-enabled/$PROJECT
 

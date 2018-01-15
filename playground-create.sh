@@ -41,10 +41,11 @@ for i in $FROM_PROJECT/backups/backup*; do
 done
 sudo cp -a $FROM_PROJECT/backups/.snapshot $PROJECT/backups/.snapshot
 
-(cd $PROJECT; docker-compose up -d --no-recreate --no-deps backup)
+./docker-compose.sh $PROJECT up -d --no-recreate --no-deps backup
 LAST_BACKUP_ID=`./restore.sh "$PROJECT" | grep -- - | tail -1`
 ./restore.sh "$PROJECT" $LAST_BACKUP_ID
-(cd $PROJECT; docker-compose stop backup; docker-compose rm backup)
+./docker-compose.sh $PROJECT stop backup
+./docker-compose.sh $PROJECT rm backup
 
 FROM_DOMAIN=`./wp-cli.sh $PROJECT --skip-plugins option get siteurl | tr -d '\r' | tr -d '\n'`
 echo

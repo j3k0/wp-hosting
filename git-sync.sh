@@ -12,7 +12,7 @@ function git_copy() {
         --volumes-from=${APPNAME}_webdata_1 \
         -v ${PWD}:/src \
         jeko/rsync-client \
-        -av --delete \
+        -rv --delete \
         --exclude=.git \
         /src/$FROM/ /var/www/html/$TO
 }
@@ -40,4 +40,5 @@ for i in wp.*/git-repo; do
     PROJECT=`dirname $i`
     echo Project $PROJECT has a git repo. Syncing...
     git_sync $PROJECT
+    ./fix-permissions.sh $PROJECT
 done

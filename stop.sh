@@ -2,10 +2,8 @@
 
 . _scripts/base.sh
 
-# Generate the docker-compose file
 if test -e $PROJECT/docker-compose.yml; then
-    cd $PROJECT
-    docker-compose stop
+    ./docker-compose.sh $PROJECT stop
 else
     echo "ERROR: no docker-compose.yml file. Project not initialized."
 fi

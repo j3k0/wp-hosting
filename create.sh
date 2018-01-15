@@ -16,7 +16,6 @@ if [ _`echo $PROJECT | cut -d. -f1` != _wp ]; then
     exit 1
 fi
 
-# Generate the docker-compose file
 if test -e $PROJECT/config; then
     echo "ERROR: project already has a config file. $PROJECT/config"
     exit 1

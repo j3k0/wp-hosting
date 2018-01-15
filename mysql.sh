@@ -2,7 +2,7 @@
 
 . _scripts/base.sh
 
-# Chec if there's a docker-compose file
+# Chec if there's a docker-compose.yml file
 if test -e $PROJECT/docker-compose.yml; then
     shift
     docker exec -it ${APPNAME}_db_1 mysql -u admin -p${ADMIN_PASSWORD} wordpress "$@" # 2>&1 | grep -v "Warning: Using a password"

@@ -30,4 +30,3 @@ if [ "x$SALT" = "x" ]; then
     SALT="$RANDOM-$RANDOM-$RANDOM-$RANDOM"
 fi
 export SALT
-
