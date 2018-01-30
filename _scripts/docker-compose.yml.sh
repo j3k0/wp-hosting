@@ -28,6 +28,7 @@ services:
     networks:
       - mailnet
       - default
+    hostname: $DOMAIN
     ports:
       - $WORDPRESS_PORT:80
     volumes:
