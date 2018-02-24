@@ -1,7 +1,7 @@
 #!/bin/bash
 
 set -e
-cd "`dirname $0`"
+cd "$(dirname "$0")"
 
 SOURCE_PROJECT=$1
 DESTINATION_PROJECT=$2
@@ -13,23 +13,23 @@ function cleanup_line_separators() {
 function safe_wp_cli() {
     F=/tmp/duplicate-wp-cli.out
     ./wp-cli.sh "$@" > $F
-    if cat $F | grep "mysqli_real_connect" > /dev/null; then
-        rm -f $F
+    if grep "mysqli_real_connect" "$F" > /dev/null; then
+        rm -f "$F"
         safe_wp_cli "$@"
     else
-        cat $F
-        rm -f $F
+        cat "$F"
+        rm -f "$F"
     fi
 }
 
 function user_last_update() {
     set +e
-    safe_wp_cli $1 user meta get $2 last_update 2> /dev/null | cleanup_line_separators | awk '{print $1}'
+    safe_wp_cli "$1" user meta get "$2" last_update 2> /dev/null | cleanup_line_separators | awk '{print $1}'
     set -e
 }
 
 function user_get_json() {
-    safe_wp_cli $1 user get $2 --format=json | cleanup_line_separators
+    safe_wp_cli "$1" user get "$2" --format=json | cleanup_line_separators
 }
 
 # UPDATE USER:
@@ -37,11 +37,11 @@ function user_get_json() {
 # user_email
 # display_name
 function field_argument() {
-    echo "--$2=\"$(echo "$1" | jq --raw-output .$2)\""
+    echo "--$2=\"$(echo "$1" | jq --raw-output ."$2")\""
 }
 
 function user_update_from_json() {
-    safe_wp_cli $1 user update $(echo "$2" | jq .ID) \
+    safe_wp_cli "$1" user update $(echo "$2" | jq .ID) \
         $(field_argument "$2" user_login) \
         $(field_argument "$2" user_email) \
         $(field_argument "$2" display_name)
