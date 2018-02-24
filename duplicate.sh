@@ -185,18 +185,18 @@ else
     ./flatten-backup.sh $SOURCE_PROJECT $BACKUP_ID
 
     echo "3/6 -- Cleanup up all destination project backup" # move to another place
-    mkdir -p $DESTINATION_PROJECT/backups.bak
-    for i in $DESTINATION_PROJECT/backups/*; do
+    mkdir -p /backups/${DESTINATION_PROJECT}.bak
+    for i in /backups/$DESTINATION_PROJECT/*; do
         if test -e $i; then
-            mv $i $DESTINATION_PROJECT/backups.bak/
+            mv $i /backups/${DESTINATION_PROJECT}.bak/
         fi
     done
-    if test -e $DESTINATION_PROJECT/backups/.snapshot; then
-        mv $DESTINATION_PROJECT/backups/.snapshot $DESTINATION_PROJECT/backups.bak/
+    if test -e /backups/$DESTINATION_PROJECT/.snapshot; then
+        mv /backups/$DESTINATION_PROJECT/.snapshot /backups/${DESTINATION_PROJECT}.bak/
     fi
 
     echo "4/6 -- Copy the source backup to the destination project"
-    cp $SOURCE_PROJECT/flat-backups/backup_${BACKUP_ID}.* $DESTINATION_PROJECT/backups
+    cp $SOURCE_PROJECT/flat-backups/backup_${BACKUP_ID}.* /backups/$DESTINATION_PROJECT
 
     echo "5/6 -- Restore source backup to the destination project"
     ./restore.sh $DESTINATION_PROJECT $BACKUP_ID

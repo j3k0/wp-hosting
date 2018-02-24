@@ -62,7 +62,7 @@ services:
   backup:
     image: jeko/wordpress-backup
     volumes:
-      - ./backups:/backups
+      - /backups/$PROJECT:/backups
       - ./volumes/html:/var/www/html
     networks:
       - default
@@ -88,23 +88,22 @@ fi
 cat << EOF
 
   phpmyadmin:
-    image: corbinu/docker-phpmyadmin
-    links:
-      - db:mysql
+    image: fovea/phpmyadmin
+    depends_on:
+      - db
     networks:
       - default
     environment:
-      - MYSQL_USERNAME=root
-      - MYSQL_PASSWORD=$ROOT_PASSWORD
-      - PMA_SECRET=$SALT
-      - PMA_USERNAME=admin
-      - PMA_PASSWORD=$ADMIN_PASSWORD
+      - PMA_HOST=db
+      - PMA_VERBOSE=MySQL
     ports:
       - $PHPMYADMIN_PORT:80
     restart: always
     mem_limit: 128M
     memswap_limit: 128M
     cpu_shares: 256
+    volumes:
+      - ./volumes/phpmyadmin:/sessions
 
   sftp:
     image: jeko/sftp:latest

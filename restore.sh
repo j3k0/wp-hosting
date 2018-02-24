@@ -11,8 +11,8 @@ if [ "x$2" = "x" ]; then
     exit 1
 fi
 
-if [ ! -e $PROJECT/backups/backup_$2.tar.gz ]; then
-    echo "Backup not found: $PROJECT/backups/backup_$2.tar.gz"
+if [ ! -e /backups/$PROJECT/backup_$2.tar.gz ]; then
+    echo "Backup not found: /backups/$PROJECT/backup_$2.tar.gz"
     listBackups $PROJECT
     exit 1
 fi

@@ -13,8 +13,8 @@ fi
 
 FINAL_BACKUP_ID=$2
 
-if [ ! -e $PROJECT/backups/backup_${FINAL_BACKUP_ID}.tar.gz ]; then
-    echo "Backup not found: $PROJECT/backups/backup_${FINAL_BACKUP_ID}.tar.gz"
+if [ ! -e /backups/$PROJECT/backup_${FINAL_BACKUP_ID}.tar.gz ]; then
+    echo "Backup not found: /backups/$PROJECT/backup_${FINAL_BACKUP_ID}.tar.gz"
     listBackups $PROJECT
     exit 1
 fi
@@ -31,13 +31,13 @@ mkdir -p "$PROJECT/flat-backups/tmp"
 function copyFinalSQL() {
     SQL_FILE=`basename $FLAT_BACKUP_FILE .tar.gz`.sql.bz2
     echo "Copy $SQL_FILE"
-    cp "$PROJECT/backups/$SQL_FILE" "$PROJECT/flat-backups/$SQL_FILE"
+    cp "/backups/$PROJECT/$SQL_FILE" "$PROJECT/flat-backups/$SQL_FILE"
 }
 
-FINAL_BACKUP="$PROJECT/backups/backup_${FINAL_BACKUP_ID}.tar.gz"
-ALL_BACKUPS="`ls -1 $PROJECT/backups/*.tar.gz | sort`"
+FINAL_BACKUP="/backups/$PROJECT/backup_${FINAL_BACKUP_ID}.tar.gz"
+ALL_BACKUPS="`ls -1 /backups/$PROJECT/*.tar.gz | sort`"
 
-if [ "`echo $FINAL_BACKUP`" = "`ls -1 $PROJECT/backups/*.tar.gz | sort | head -1`" ]; then
+if [ "`echo $FINAL_BACKUP`" = "`ls -1 /backups/$PROJECT/*.tar.gz | sort | head -1`" ]; then
     if [ "_$WIPEOUT_INCREMENTAL" = "_YES" ]; then
         echo "Output is identical to input. Nothing to wipe out."
         exit 0
@@ -70,7 +70,7 @@ else
         echo "Removing incremental backups..."
         for BACKUP_FILE in $ALL_BACKUPS; do
             rm -f $BACKUP_FILE
-            rm -f $PROJECT/backups/`basename $BACKUP_FILE .tar.gz`.sql.bz2
+            rm -f /backups/$PROJECT/`basename $BACKUP_FILE .tar.gz`.sql.bz2
             if [ $BACKUP_FILE = $FINAL_BACKUP ]; then
                 break
             fi
@@ -83,6 +83,6 @@ fi
 rm -fr "$PROJECT/flat-backups/tmp"
 
 if [ "_$WIPEOUT_INCREMENTAL" = "_YES" ]; then
-    mv $FLAT_BACKUP_FILE $PROJECT/backups
-    mv "$PROJECT/flat-backups/$SQL_FILE" "$PROJECT/backups/$SQL_FILE"
+    mv $FLAT_BACKUP_FILE /backups/$PROJECT
+    mv "$PROJECT/flat-backups/$SQL_FILE" "/backups/$PROJECT/$SQL_FILE"
 fi

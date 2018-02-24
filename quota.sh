@@ -4,7 +4,7 @@
 
 if test -e $PROJECT/docker-compose.yml; then
     echo -n "$PROJECT "
-    docker run --rm -it -v `pwd`/${PROJECT}/volumes/html:/var/www/html -v `pwd`/${PROJECT}/volumes/mysql:/var/lib/mysql --workdir /var/www/html --user=root haron/vim du -hs . | awk '{print $1}'
+    echo $(sudo du -s ${PROJECT}/volumes/html ${PROJECT}/volumes/mysql | awk '{print $1}') | awk '{printf "%.0f M\n", ($1 + $2)/1024}'
 else
     echo "ERROR: Project not initialized."
 fi

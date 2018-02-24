@@ -1,11 +1,19 @@
 #!/bin/bash
 
+PREEXT=$(echo $DOMAIN | cut -d. -f2)
+EXT=$(echo $DOMAIN | cut -d. -f3)
+if [ "x$EXT" = "x" ] || [ ${#PREEXT} -le 2 ]; then
+    WWW_DOMAIN=www.$DOMAIN
+else
+    WWW_DOMAIN=
+fi
+
 cat << EOF
 
 server {
 	listen 80;
 	client_max_body_size 32m;
-	server_name ${DOMAIN} www.${DOMAIN} ${PROJECT}.ggs.ovh;
+	server_name ${DOMAIN} ${WWW_DOMAIN} ${BACKEND_WWW_DOMAIN};
 	location / {
 		proxy_pass http://127.0.0.1:$WORDPRESS_PORT;
         include ${PWD}/config/nginx_proxy_params;
@@ -25,7 +33,7 @@ server {
 server {
 	listen 80;
 	client_max_body_size 32m;
-	server_name phpmyadmin.${DOMAIN} phpmyadmin.${PROJECT}.ggs.ovh;
+	server_name ${BACKEND_PMA_DOMAIN};
 	location / {
 		proxy_pass http://127.0.0.1:$PHPMYADMIN_PORT;
         include ${PWD}/config/nginx_proxy_params;

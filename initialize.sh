@@ -26,8 +26,17 @@ echo Generate project files
 ./_scripts/php.ini.sh > $PROJECT/php.ini
 
 echo Setup domain name with cloudflare
-./cfcli.sh --type CNAME add $PROJECT.ggs.ovh `hostname`.ggs.ovh || true
-./cfcli.sh --type CNAME add phpmyadmin.$PROJECT.ggs.ovh `hostname`.ggs.ovh || true
+./create-dns-records.sh $PROJECT
+
+sudo mkdir -p /backups/$PROJECT
+
+# echo Setup OVH CDN
+# echo "Add www.$DOMAIN to OVH CDN? (y/N)"
+# read ANSWER
+# if [ "x$ANSWER" = "xy" ] || [ "x$ANSWER" = "xY" ]; then ./ovhcdn.sh www.$DOMAIN; fi
+# echo "Add $DOMAIN to OVH CDN? (y/N)"
+# read ANSWER
+# if [ "x$ANSWER" = "xy" ] || [ "x$ANSWER" = "xY" ]; then ./ovhcdn.sh $DOMAIN; fi
 
 echo Install the nginx config
 if ! test -e /etc/nginx/sites-enabled/$PROJECT; then

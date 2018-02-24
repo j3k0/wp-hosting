@@ -1,6 +1,7 @@
 #!/bin/bash
 
 . _scripts/base.sh
+. config/base
 
 WWW_HOSTS=`cat $PROJECT/nginx-site | grep www | grep server_name | sort | uniq | cut -d\; -f1 | awk '{print $2, $3, $4}'`
 PHPMYADMIN_HOSTS=`cat $PROJECT/nginx-site | grep phpmyadmin | grep server_name | sort | uniq | cut -d\; -f1 | awk '{print $2, $3, $4}'`
@@ -32,7 +33,7 @@ phpMyAdmin Password: $ADMIN_PASSWORD
 
 ** SFTP **
 
-SFTP Host: $PROJECT.ggs.ovh
+SFTP Host: $PROJECT.${BACKEND_DOMAIN}
 SFTP Port: $SFTP_PORT
 SFTP Username: admin
 SFTP Password: $ADMIN_PASSWORD
@@ -41,10 +42,9 @@ SFTP Password: $ADMIN_PASSWORD
 
 For DNS setup, we will need the following:
 
-$DOMAIN. A 46.105.198.84
-www.$DOMAIN. CNAME www.$DOMAIN.web.cdn.anycast.me.
-sftp.$DOMAIN. CNAME $PROJECT.ggs.ovh.
-phpmyadmin.$DOMAIN. CNAME $PROJECT.ggs.ovh.
+$DOMAIN. A ${BACKEND_IP}
+www.$DOMAIN. CNAME ${BACKEND_WWW_DOMAIN}.
+cdn.$DOMAIN. CNAME ${BACKEND_CDN_DOMAIN}.
 
 Please let me know if you have any questions.
 

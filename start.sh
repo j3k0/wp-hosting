@@ -20,6 +20,7 @@ if test -e $PROJECT/docker-compose.yml; then
     if test -e uptimerobot.yml; then
         ./setup-uptimerobot.sh $PROJECT
     fi
+    ./letsencrypt.sh $PROJECT
 
     echo
     echo "$PROJECT is available at the following ports:"

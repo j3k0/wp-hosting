@@ -8,4 +8,4 @@ if [ ! -e cfcli.yml ]; then
     exit 1
 fi
 
-docker run --rm -it -v "$(pwd)/cfcli.yml:/cfcli.yml" anjuna/cfcli --config /cfcli.yml "$@"
+docker run --rm -t -v "$(pwd)/cfcli.yml:/cfcli.yml" anjuna/cfcli --config /cfcli.yml "$@"

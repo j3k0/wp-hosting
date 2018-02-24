@@ -31,15 +31,15 @@ fi
 # Restore last backup from source project
 #sudo rsync -av "$FROM_PROJECT/backups/" "$PROJECT/backups"
 # Fast clone backups using hard links
-sudo mkdir -p $PROJECT/backups
-sudo rm -f $PROJECT/backups/*
-for i in $FROM_PROJECT/backups/backup*; do
+sudo mkdir -p /backups/$PROJECT
+sudo rm -f /backups/$PROJECT/*
+for i in /backups/$FROM_PROJECT/backup*; do
     f=`basename $i`
-    if test ! -e $PROJECT/backups/$f; then
-        sudo ln $i $PROJECT/backups/$f
+    if test ! -e /backups/$PROJECT/$f; then
+        sudo ln $i /backups/$PROJECT/$f
     fi
 done
-sudo cp -a $FROM_PROJECT/backups/.snapshot $PROJECT/backups/.snapshot
+sudo cp -a /backups/$FROM_PROJECT/.snapshot /backups/$PROJECT/.snapshot
 
 ./docker-compose.sh $PROJECT up -d --no-recreate --no-deps backup
 LAST_BACKUP_ID=`./restore.sh "$PROJECT" | grep -- - | tail -1`

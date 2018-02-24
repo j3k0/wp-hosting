@@ -3,17 +3,18 @@ RUN \
     export DEBIAN_FRONTEND=noninteractive \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
-        libmagickwand-dev \
         ghostscript \
         libfreetype6-dev \
         libjpeg62-turbo-dev \
         libmcrypt-dev \
         libpng12-dev \
+        zlib1g-dev \
         optipng \
         pngcrush \
         ca-certificates \
         curl \
         git \
+        libmagickwand-dev  \
     && curl -Lsf 'https://storage.googleapis.com/golang/go1.8.3.linux-amd64.tar.gz' | tar -C '/usr/local' -xvzf - \
     && PATH=/usr/local/go/bin:$PATH go get github.com/mailhog/mhsendmail \
     && cp /root/go/bin/mhsendmail /usr/bin/mhsendmail \

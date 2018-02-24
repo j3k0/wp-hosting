@@ -1,6 +1,8 @@
 set -e
 cd "`dirname $0`"
 
+. config/base
+
 if test ! -e $1/config; then
     echo "Usage: $0 <project>"
     echo
@@ -25,6 +27,10 @@ if [ "x$DOMAIN" = "x" ]; then
     DOMAIN=$PROJECT
 fi
 export DOMAIN
+
+export BACKEND_PMA_DOMAIN="phpmyadmin-${DOMAIN//./-}.${BACKEND_DOMAIN}"
+export BACKEND_WWW_DOMAIN="www-${DOMAIN//./-}.${BACKEND_DOMAIN}"
+export BACKEND_CDN_DOMAIN="cdn-${DOMAIN//./-}.${BACKEND_DOMAIN}"
 
 if [ "x$SALT" = "x" ]; then
     SALT="$RANDOM-$RANDOM-$RANDOM-$RANDOM"
