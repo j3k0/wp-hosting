@@ -4,6 +4,7 @@ var keycdn = new KeyCDN(process.env.KEYCDN_KEY);
 var zone = {
     name: process.argv[2],
     originurl: process.argv[3],
+    sslcert: 'letsencrypt',
     type: 'pull'
 };
 
@@ -35,29 +36,52 @@ function findZone(zone, callback) {
     });
 }
 
-function createZone(zone, callback) {
+function deleteZone(zone, callback) {
     findZone(zone, (err, found) => {
-        if (!found) {
-            keycdn.post('zones.json', zone, (err, res) => {
+        if (found) {
+            console.log(`Zone found: ${JSON.stringify(found)}`);
+            console.log(`Delete zone ${found.name} (${found.id})`);
+            keycdn.del(`zones/${found.id}.json`, (err, res) => {
                 if (err) {
-                    callback(err, null);
+                    console.error(`Failed: ${JSON.stringify(res)}`);
+                    callback(err);
                     return;
                 }
-                callback(null, res.data.zone);
+                console.log(`Result: ` + JSON.stringify(res));
+                callback(null);
             });
         }
         else {
-            callback(null, found);
+            console.log(`Zone does not already exists.`);
+            callback(null);
         }
     });
 }
 
+function createZone(zone, callback) {
+    deleteZone(zone, (err) => {
+        console.log(`Create zone ${zone.name}`);
+        keycdn.post('zones.json', zone, (err, res) => {
+            if (err) {
+                console.error(`Failed: ${JSON.stringify(res)}`);
+                callback(err, null);
+                return;
+            }
+            console.log(`Result: ` + JSON.stringify(res));
+            callback(null, res.data.zone);
+        });
+    });
+}
+
 function createZonealias(zonealias, callback) {
+    console.log(`Create Zone Alias ${zonealias.id}`);
     keycdn.post('zonealiases.json', zonealias, (err, res) => {
         if (err) {
+            console.error(`Failed: ${JSON.stringify(res)}`);
             callback(err, null);
             return;
         }
+        console.log(`Result: ${res}`);
         callback(null, res.data.zonealias);
     });
 }
@@ -76,5 +100,6 @@ function main(callback) {
 main((err) => {
     if (err) {
         console.error(err);
+        process.exit(1);
     }
 });
