@@ -27,4 +27,6 @@ RUN \
     && docker-php-ext-install -j$(nproc) mbstring \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /cache && chown www-data /cache && chmod 755 /cache \
+    && echo '[mail function]' > /usr/local/etc/php/conf.d/ze-fovea-email.ini \
+    && echo 'sendmail_path=/usr/bin/mhsendmail --smtp-addr smtp:25' >> /usr/local/etc/php/conf.d/ze-fovea-email.ini \
     && echo DONE
