@@ -30,13 +30,12 @@ if [ "`./version.sh $PROJECT`" = 1 ]; then
     ./_scripts/docker-compose.yml.sh > $PROJECT/docker-compose.yml
 
     ./start.sh $PROJECT
-else
-
-    if [ "`./version.sh $PROJECT`" = 2 ]; then
-        echo "Updating docker-compose.yml and php.ini"
-        ./_scripts/php.ini.sh > $PROJECT/php.ini
-        ./_scripts/docker-compose.yml.sh > $PROJECT/docker-compose.yml
-        ./start.sh $PROJECT
+elif [ "`./version.sh $PROJECT`" = 2 ]; then
+    echo "Updating docker-compose.yml and php.ini"
+    ./_scripts/php.ini.sh > $PROJECT/php.ini
+    ./_scripts/docker-compose.yml.sh > $PROJECT/docker-compose.yml
+    if [ "x$STATE" != "xDISABLED" ]; then
+        ./docker-compose.sh $PROJECT up -d
     fi
 fi
 

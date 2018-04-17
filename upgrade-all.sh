@@ -1,6 +1,9 @@
 #!/bin/bash
 
+YES=$([ "x$1" = "x-y" ] && echo "1" || echo "0")
+
 for i in $(cat */docker-compose.yml | grep image | cut -d: -f2 | sort | uniq); do
+    echo docker pull $i
     docker pull $i
 done
 
@@ -11,8 +14,16 @@ docker pull $(cat phpmyadmin/Dockerfile | grep FROM | cut -d\  -f2)
 docker build -t fovea/phpmyadmin phpmyadmin
 
 for i in $(./ls.sh); do
-    echo "$i ..."
-    ./upgrade.sh "$i"
+    if [ $YES == 1 ]; then
+        echo "$i..."
+        CONFIRM=y
+    else
+        echo "Upgrade $i? [y/n]"
+        read CONFIRM
+    fi
+    if [ "x$CONFIRM" = "xy" ]; then
+        ./upgrade.sh "$i"
+    fi
 done
 
 sudo service nginx reload

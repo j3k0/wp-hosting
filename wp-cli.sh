@@ -14,3 +14,5 @@ if test -e $PROJECT/docker-compose.yml; then
 else
     echo "ERROR: Project not initialized."
 fi
+
+sudo rm -fr /cache/nginx/*
