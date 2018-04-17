@@ -15,7 +15,7 @@ if test -e $PROJECT/docker-compose.yml; then
         # ./wp-cli.sh $PROJECT option set hectane_settings '{"host":"mail","port":"8025","tls_ignore":"on","username":"","password":""}' --format=json
     fi
     ./fix-permissions.sh $PROJECT
-    ./install-extensions.sh $PROJECT
+    # ./install-extensions.sh $PROJECT
     # docker cp _scripts/info.php ${APPNAME}_wordpress_1:/var/www/html/$APPNAME-info.php
     if test -e uptimerobot.yml; then
         ./setup-uptimerobot.sh $PROJECT
