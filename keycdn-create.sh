@@ -39,5 +39,6 @@ fi
 if [ "x$DO_IT" = "xy" ] || [ "x$DO_IT" = "xY" ]; then
     ./wp-cli.sh $PROJECT plugin install cdn-enabler
     ./wp-cli.sh $PROJECT option set cdn_enabler "{\"url\":\"https://cdn.${DOMAIN}\",\"dirs\":\"wp-content,wp-includes\",\"excludes\":\".php\",\"relative\":\"1\",\"https\":\"1\",\"keycdn_api_key\":\"\",\"keycdn_zone_id\":\"\"}" --format=json
+    ./wp-cli.sh $PROJECT plugin activate cdn-enabler
 fi
 

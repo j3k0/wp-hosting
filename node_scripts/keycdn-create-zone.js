@@ -5,7 +5,9 @@ var zone = {
     name: process.argv[2],
     originurl: process.argv[3],
     sslcert: 'letsencrypt',
-    type: 'pull'
+    type: 'pull',
+    cors: 'enabled',
+    cachecanonical: 'enabled',
 };
 
 var zonealias = {
@@ -74,7 +76,7 @@ function createZone(zone, callback) {
 }
 
 function createZonealias(zonealias, callback) {
-    console.log(`Create Zone Alias ${zonealias.id}`);
+    console.log(`Create Zone Alias ${JSON.stringify(zonealias)}`);
     keycdn.post('zonealiases.json', zonealias, (err, res) => {
         if (err) {
             console.error(`Failed: ${JSON.stringify(res)}`);
@@ -92,7 +94,7 @@ function main(callback) {
             callback(err);
             return;
         }
-        zonealias.zone_id = zone.id;
+        zonealias.zone_id = zone.id | 0;
         createZonealias(zonealias, callback);
     });
 }
