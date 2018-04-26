@@ -70,3 +70,6 @@ if test -e $PROJECT/volumes/html/wp-content/cache; then
         rm -fr $PROJECT/volumes/html/wp-content/cache
     fi
 fi
+
+# Make sure spdy is enabled
+sed --in-place=.bak 's/listen 443 ssl;/listen 443 ssl spdy;/g' $PROJECT/nginx-site
