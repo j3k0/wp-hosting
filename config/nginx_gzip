@@ -12,7 +12,7 @@ gzip_min_length 1000;
 gzip_buffers 16 8k;
 gzip_http_version 1.1;
 # files to gzip
-gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript image/svg+xml;
+gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript image/svg+xml application/x-font application/x-font-opentype application/x-font-otf application/x-font-truetype application/x-font-ttf application/x-javascript application/xhtml+xml font/opentype font/otf font/ttf font/woff font/woff2 application/x-font-woff;
 
 location ~ \.php~ {
     deny all;
