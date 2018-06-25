@@ -103,8 +103,8 @@ cat << EOF
     memswap_limit: 128M
     cpu_shares: 256
     volumes:
-      - ./volumes/phpmyadmin:/sessions
-
+      - ./volumes/phpmyadmin/sessions:/sessions
+      - ./volumes/phpmyadmin/.well-known/acme-challenge:/www/.well-known/acme-challenge
   sftp:
     image: jeko/sftp:latest
     volumes:

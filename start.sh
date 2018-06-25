@@ -3,6 +3,7 @@
 . _scripts/base.sh
 
 if test -e $PROJECT/docker-compose.yml; then
+    ./docker-compose.sh $PROJECT build
     ./docker-compose.sh $PROJECT up -d
     sleep 3
     ./fix-permissions.sh $PROJECT
@@ -20,7 +21,8 @@ if test -e $PROJECT/docker-compose.yml; then
     if test -e uptimerobot.yml; then
         ./setup-uptimerobot.sh $PROJECT
     fi
-    ./letsencrypt.sh $PROJECT
+    
+    # ./letsencrypt.sh $PROJECT
 
     echo
     echo "$PROJECT is available at the following ports:"

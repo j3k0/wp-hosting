@@ -1,6 +1,9 @@
 set -e
 cd "`dirname $0`"
 
+STATE=
+TYPE=
+
 . config/base
 
 if test ! -e $1/config; then

@@ -24,21 +24,24 @@ else
     ./node_scripts/run.sh keycdn-create-zone.js $(./shortcode.sh $PROJECT) $(./main-url.sh $PROJECT) cdn.${DOMAIN}
 fi
 
-if [ "x$2" == "x--install-plugin" ]; then
-    DO_IT=y
-    shift
-elif [ "x$2" == "x--skip-plugin" ]; then
-    DO_IT=n
-    shift
+if [ "x$TYPE" = "xwordpress" ]; then
+    if [ "x$2" == "x--install-plugin" ]; then
+        DO_IT=y
+        shift
+    elif [ "x$2" == "x--skip-plugin" ]; then
+        DO_IT=n
+        shift
+    else
+        echo You can now setup the cdn-enabler plugin to use cdn.${DOMAIN}
+        echo Want me to do it for you? y/N
+        read DO_IT
+    fi
+
+    if [ "x$DO_IT" = "xy" ] || [ "x$DO_IT" = "xY" ]; then
+        ./wp-cli.sh $PROJECT plugin install cdn-enabler
+        ./wp-cli.sh $PROJECT option set cdn_enabler "{\"url\":\"https://cdn.${DOMAIN}\",\"dirs\":\"wp-content,wp-includes\",\"excludes\":\".php\",\"relative\":\"1\",\"https\":\"1\",\"keycdn_api_key\":\"\",\"keycdn_zone_id\":\"\"}" --format=json
+        ./wp-cli.sh $PROJECT plugin activate cdn-enabler
+    fi
 else
-    echo You can now setup the cdn-enabler plugin to use cdn.${DOMAIN}
-    echo Want me to do it for you? y/N
-    read DO_IT
+    echo "Website is not using wordpress, not much I can do here..."
 fi
-
-if [ "x$DO_IT" = "xy" ] || [ "x$DO_IT" = "xY" ]; then
-    ./wp-cli.sh $PROJECT plugin install cdn-enabler
-    ./wp-cli.sh $PROJECT option set cdn_enabler "{\"url\":\"https://cdn.${DOMAIN}\",\"dirs\":\"wp-content,wp-includes\",\"excludes\":\".php\",\"relative\":\"1\",\"https\":\"1\",\"keycdn_api_key\":\"\",\"keycdn_zone_id\":\"\"}" --format=json
-    ./wp-cli.sh $PROJECT plugin activate cdn-enabler
-fi
-

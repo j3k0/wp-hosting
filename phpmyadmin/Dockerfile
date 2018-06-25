@@ -7,3 +7,4 @@ RUN cat /etc/nginx.conf | head -n -2 > /tmp/nginx.conf \
     && echo '    }' >> /tmp/nginx.conf \
     && echo '}' >> /tmp/nginx.conf \
     && mv /tmp/nginx.conf /etc/nginx.conf
+VOLUME /www/.well-known/acme-challenge

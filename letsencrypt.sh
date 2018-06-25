@@ -26,7 +26,7 @@ if [ "x$1" != "x--web-only" ]; then
     echo LETSENCRYPT $DOMAINS
     echo
     DOMAINS="`echo $(cat $PROJECT/nginx-site | grep server_name | grep phpmyadmin | head -1) | cut -d\  -f2- | sed 's/;//g' | sed 's/ / -d /g'`"
-    PHPMYADMIN_WEBROOT="/proc/$(docker inspect --format {{.State.Pid}} ${APPNAME}_phpmyadmin_1)/root/www"
+    PHPMYADMIN_WEBROOT="$(pwd)/$PROJECT/volumes/phpmyadmin"
     set +e
     sudo certbot $STAGING --authenticator webroot --webroot-path "$PHPMYADMIN_WEBROOT" --installer nginx --redirect -d $DOMAINS
 fi
