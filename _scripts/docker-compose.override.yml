@@ -1,0 +1,5 @@
+version: '2.2'
+services:
+  wordpress:
+    entrypoint: docker-php-entrypoint
+    command: apache2-foreground

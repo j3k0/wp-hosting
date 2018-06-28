@@ -8,7 +8,7 @@ fi
 SUBNET="`./subnet.sh $PROJECT`"
 
 cat << EOF
-version: '2'
+version: '2.2'
 
 networks:
   mailnet:
