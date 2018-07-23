@@ -36,9 +36,17 @@ function git_sync() {
     cd ..
 }
 
-for i in wp.*/git-repo; do
-    PROJECT=`dirname $i`
-    echo Project $PROJECT has a git repo. Syncing...
-    git_sync $PROJECT
-    ./fix-permissions.sh $PROJECT
+if [ "x$1" = x ]; then
+    PROJECTS="$(echo wp.*/git-repo | sed "s/\\/git-repo//g")"
+else
+    PROJECTS="$1"
+fi
+
+for PROJECT in $PROJECTS; do
+    # PROJECT="$(dirname $i)"
+    if [ -e $PROJECT/git-repo ]; then
+        echo Project $PROJECT has a git repo. Syncing...
+        # git_sync $PROJECT
+        # ./fix-permissions.sh $PROJECT
+    fi
 done
