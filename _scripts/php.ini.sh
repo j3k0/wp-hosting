@@ -19,9 +19,9 @@ short_open_tag = Off
 url_rewriter.tags = "a=href,area=href,frame=src,input=src,form=fakeentry"
 variables_order = "GPCS"
 
-# extension=imagick.so
-# extension=mbstring.so
-#
-# [mail function]
-# sendmail_path=/usr/bin/mhsendmail --smtp-addr smtp:25
+; extension=imagick.so
+; extension=mbstring.so
+;
+; [mail function]
+; sendmail_path=/usr/bin/mhsendmail --smtp-addr smtp:25
 EOF

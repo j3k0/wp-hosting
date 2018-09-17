@@ -6,6 +6,7 @@ if [ "x$PROJECT" = "x" ]; then
 fi
 
 SUBNET="`./subnet.sh $PROJECT`"
+HOST_HOSTNAME="$(hostname -A)"
 
 cat << EOF
 version: '2.2'
@@ -28,12 +29,13 @@ services:
     networks:
       - mailnet
       - default
-    hostname: $DOMAIN
+    hostname: $HOST_HOSTNAME
     ports:
       - $WORDPRESS_PORT:80
     volumes:
       - ./php.ini:/usr/local/etc/php/php.ini
       - ./volumes/html:/var/www/html
+      - ./ssl:/ssl
     environment:
       - WORDPRESS_DB_NAME=wordpress
       - WORDPRESS_DB_USER=admin
@@ -109,6 +111,14 @@ cat << EOF
     image: jeko/sftp:latest
     volumes:
       - ./volumes/html:/var/www/html
+      - /etc/ssh/ssh_host_dsa_key.pub:/etc/ssh/ssh_host_dsa_key.pub:ro
+      - /etc/ssh/ssh_host_ecdsa_key.pub:/etc/ssh/ssh_host_ecdsa_key.pub:ro
+      - /etc/ssh/ssh_host_ed25519_key.pub:/etc/ssh/ssh_host_ed25519_key.pub:ro
+      - /etc/ssh/ssh_host_rsa_key.pub:/etc/ssh/ssh_host_rsa_key.pub:ro
+      - /etc/ssh/ssh_host_dsa_key:/etc/ssh/ssh_host_dsa_key:ro
+      - /etc/ssh/ssh_host_ecdsa_key:/etc/ssh/ssh_host_ecdsa_key:ro
+      - /etc/ssh/ssh_host_ed25519_key:/etc/ssh/ssh_host_ed25519_key:ro
+      - /etc/ssh/ssh_host_rsa_key:/etc/ssh/ssh_host_rsa_key:ro
     ports:
       - "$SFTP_PORT:22"
     command: "admin:$ADMIN_PASSWORD:33::/var/www"

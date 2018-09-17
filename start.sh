@@ -21,7 +21,10 @@ if test -e $PROJECT/docker-compose.yml; then
     if test -e uptimerobot.yml; then
         ./setup-uptimerobot.sh $PROJECT
     fi
-    
+
+    if test ! -e "$PROJECT/docker-compose.override.yml"; then
+        cp _scripts/docker-compose.override.yml "$PROJECT/docker-compose.override.yml"
+    fi
     # ./letsencrypt.sh $PROJECT
 
     echo

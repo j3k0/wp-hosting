@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-cd "`dirname $0`"
+cd "$(dirname "$0")"
 
 PROJECT=
 APPNAME=
@@ -9,12 +9,12 @@ function git_copy() {
     FROM=$1
     TO=$2
     docker run --rm -it \
-        --volumes-from=${APPNAME}_webdata_1 \
+        -v ${PWD}/../volumes/html:/dest \
         -v ${PWD}:/src \
         jeko/rsync-client \
         -rv --delete \
         --exclude=.git \
-        /src/$FROM/ /var/www/html/$TO
+        /src/$FROM/ /dest/$TO
 }
 
 function git_sync() {
@@ -46,7 +46,7 @@ for PROJECT in $PROJECTS; do
     # PROJECT="$(dirname $i)"
     if [ -e $PROJECT/git-repo ]; then
         echo Project $PROJECT has a git repo. Syncing...
-        # git_sync $PROJECT
-        # ./fix-permissions.sh $PROJECT
+        git_sync $PROJECT
+        ./fix-permissions.sh $PROJECT
     fi
 done

@@ -1,4 +1,10 @@
 #!/bin/bash
+
+if [ "x$1" = "x--help" ]; then
+    echo "$0 <project> [--staging] [--phpmyadmin-only] [--web-only]"
+    exit 0
+fi
+
 . _scripts/base.sh
 
 shift

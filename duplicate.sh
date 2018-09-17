@@ -90,12 +90,16 @@ SOURCE_APPNAME=`echo $SOURCE_PROJECT | sed s/\\\\.//g | sed s/-//g`
 DESTINATION_APPNAME=`echo $DESTINATION_PROJECT | sed s/\\\\.//g | sed s/-//g`
 
 # Extract www volumes names for both source and destinationcontainers
-SOURCE_VOLUME=$(docker inspect ${SOURCE_APPNAME}_webdata_1 | jq --raw-output .[0].Mounts[0].Name)
-DESTINATION_VOLUME=$(docker inspect ${DESTINATION_APPNAME}_webdata_1 | jq --raw-output .[0].Mounts[0].Name)
+SOURCE_WWW_PATH="$(dirname "$0")/$SOURCE_PROJECT/volumes/html"
+DESTINATION_WWW_PATH="$(dirname "$0")/$DESTINATION_PROJECT/volumes/html"
 
 # Extract current source and destination URLs
 SOURCE_URL=$(safe_wp_cli $SOURCE_PROJECT option get siteurl | tr -d '\r' | tr -d '\n')
-DESTINATION_URL=$(safe_wp_cli $DESTINATION_PROJECT option get siteurl | tr -d '\r' | tr -d '\n')
+echo "Destination URL: (ENTER for auto-detect)"
+read DESTINATION_URL
+if [ "x$DESTINATION_URL" = "x" ]; then
+    DESTINATION_URL=$(safe_wp_cli $DESTINATION_PROJECT option get siteurl | tr -d '\r' | tr -d '\n')
+fi
 
 # Extract current and destination servers
 SOURCE_SERVER=$(echo $SOURCE_URL | cut -d/ -f3)
@@ -120,7 +124,7 @@ if [ "x$FAST" = "x1" ]; then
     fi
 
     echo "1/5 -- Synchronize file systems"
-    docker run --rm -it -v $SOURCE_VOLUME:/src -v $DESTINATION_VOLUME:/dst jeko/rsync-client -a --delete --exclude=wp-config.php --exclude=.git /src/ /dst
+    docker run --rm -it -v $SOURCE_WWW_PATH:/src -v $DESTINATION_WWW_PATH:/dst jeko/rsync-client -a --delete --exclude=wp-config.php --exclude=.git /src/ /dst
 
     echo "2/5 -- Dump the source database (excluding users)"
     . $SOURCE_PROJECT/config

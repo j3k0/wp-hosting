@@ -21,6 +21,7 @@ if [ "`./version.sh $PROJECT`" = 1 ]; then
     echo 'Deactivate hectane'
     ./wp-cli.sh $PROJECT plugin deactivate hectane || true
 
+    ./docker-compose.sh $PROJECT build || true
     ./docker-compose.sh $PROJECT stop || true
     ./docker-compose.sh $PROJECT rm -vf || true
 
@@ -35,6 +36,7 @@ elif [ "`./version.sh $PROJECT`" = 2 ]; then
     ./_scripts/php.ini.sh > $PROJECT/php.ini
     ./_scripts/docker-compose.yml.sh > $PROJECT/docker-compose.yml
     if [ "x$STATE" != "xDISABLED" ]; then
+        ./docker-compose.sh $PROJECT build || true
         ./docker-compose.sh $PROJECT up -d
     fi
 fi
