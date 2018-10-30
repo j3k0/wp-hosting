@@ -37,6 +37,11 @@ function git_sync() {
 }
 
 if [ "x$1" = x ]; then
+    echo "Do you really want to synchronize ALL projects? (type YES if you are)"
+    read SURE
+    if [ "x$SURE" != "xYES" ]; then
+        exit 1
+    fi
     PROJECTS="$(echo wp.*/git-repo | sed "s/\\/git-repo//g")"
 else
     PROJECTS="$1"
