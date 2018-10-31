@@ -1,6 +1,6 @@
 #!/bin/bash
 
-YES=$([ "x$1" = "x-y" ] && echo "1" || echo "0")
+YES=$([ "x$1" = "x-y" ] || [ "x$1" == "x--yes" ] && echo "1" || echo "0")
 
 for i in $(cat */docker-compose.yml | grep image | cut -d: -f2 | sort | uniq); do
     echo docker pull $i
@@ -23,6 +23,9 @@ for i in $(./ls.sh); do
     fi
     if [ "x$CONFIRM" = "xy" ]; then
         ./upgrade.sh "$i"
+    fi
+    if [ "x$SLEEP_BETWEEN" != "x" ]; then
+        sleep "$SLEEP_BETWEEN"
     fi
 done
 
