@@ -44,6 +44,7 @@ services:
     mem_limit: 512M
     memswap_limit: 128M
     cpu_shares: 1024
+    cpus: 1.0
 
   db:
     image: mysql:5.6
@@ -60,6 +61,7 @@ services:
     mem_limit: 768M
     memswap_limit: 256M
     cpu_shares: 1024
+    cpus: 1.0
 
   backup:
     image: jeko/wordpress-backup
