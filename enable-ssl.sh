@@ -11,7 +11,7 @@ if [ "x$TYPE" = "xwordpress" ]; then
         exit 0
     fi
 
-    if ! cat $PROJECT/nginx-site | grep ssl_certificate_key | grep Certbot | grep -v phpmyadmin; then
+    if ! cat $PROJECT/nginx-site | grep ssl_certificate_key | grep letsencrypt | grep -v phpmyadmin; then
         echo "$PROJECT does not have a letsencrypt certificate"
         exit 0
     fi
