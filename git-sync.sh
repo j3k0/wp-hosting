@@ -29,6 +29,7 @@ function git_sync() {
         git clone $GIT_REPO_URL git-files
     fi
     cd git-files
+    git fetch
     git checkout $GIT_REPO_BRANCH
     git pull
     GIT_REPO_COPY
