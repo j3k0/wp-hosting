@@ -24,7 +24,7 @@ fi
 # updating docker images
 #
 if [ "x$SKIP_DOCKER" != xYES ]; then
-    UPDATED="mail db sftp phpmyadmin backup wordpress"
+    UPDATED="db sftp phpmyadmin backup wordpress"
     ./docker-compose.sh $PROJECT stop
     for C in $UPDATED; do
         ./docker-compose.sh $PROJECT rm -f $C || true
