@@ -12,8 +12,8 @@ proxy_set_header X-Forwarded-Proto $scheme;
 expires 7d;
 
 proxy_cache            cacheone;
-proxy_cache_key        "$scheme$host$request_uri";
-proxy_cache_valid      200 7d;
+proxy_cache_key        "$scheme$proxy_host$host$request_uri";
+proxy_cache_valid      any 48h;
 proxy_cache_use_stale  error timeout invalid_header updating
                        http_500 http_502 http_503 http_504;
 
