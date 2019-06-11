@@ -90,8 +90,8 @@ SOURCE_APPNAME=`echo $SOURCE_PROJECT | sed s/\\\\.//g | sed s/-//g`
 DESTINATION_APPNAME=`echo $DESTINATION_PROJECT | sed s/\\\\.//g | sed s/-//g`
 
 # Extract www volumes names for both source and destinationcontainers
-SOURCE_WWW_PATH="$(dirname "$0")/$SOURCE_PROJECT/volumes/html"
-DESTINATION_WWW_PATH="$(dirname "$0")/$DESTINATION_PROJECT/volumes/html"
+SOURCE_WWW_PATH="$(pwd)/$SOURCE_PROJECT/volumes/html"
+DESTINATION_WWW_PATH="$(pwd)/$DESTINATION_PROJECT/volumes/html"
 
 # Extract current source and destination URLs
 SOURCE_URL=$(safe_wp_cli $SOURCE_PROJECT option get siteurl | tr -d '\r' | tr -d '\n')
