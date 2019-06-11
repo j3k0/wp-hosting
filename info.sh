@@ -18,7 +18,7 @@ done
 
 cat << EOF
 
-Please find below the credential for $DOMAIN
+# $DOMAIN
 
 ** Wordpress **
 
@@ -40,12 +40,8 @@ SFTP Password: $ADMIN_PASSWORD
 
 ** DNS **
 
-For DNS setup, we will need the following:
-
 $DOMAIN. A ${BACKEND_IP}
 www.$DOMAIN. CNAME ${BACKEND_WWW_DOMAIN}.
 cdn.$DOMAIN. CNAME ${BACKEND_CDN_DOMAIN}.
-
-Please let me know if you have any questions.
 
 EOF
