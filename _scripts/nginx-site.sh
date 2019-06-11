@@ -14,6 +14,9 @@ server {
 	listen 80;
 	client_max_body_size 32m;
 	server_name ${DOMAIN} ${WWW_DOMAIN} ${BACKEND_WWW_DOMAIN};
+    location ~ /\.git {
+        deny all;
+    }
 	location / {
 		proxy_pass http://127.0.0.1:$WORDPRESS_PORT;
         include ${PWD}/config/nginx_proxy_params;
