@@ -108,7 +108,8 @@ cat << EOF
     cpu_shares: 256
     volumes:
       - ./volumes/phpmyadmin/sessions:/sessions
-      - ./volumes/phpmyadmin/.well-known/acme-challenge:/www/.well-known/acme-challenge
+      - ./volumes/phpmyadmin/.well-known/acme-challenge:/www/.well-known/acme-challenge:ro
+      - ./volumes/phpmyadmin/.well-known/acme-challenge:/var/www/html/.well-known/acme-challenge:ro
   sftp:
     image: jeko/sftp:latest
     volumes:
