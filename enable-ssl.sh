@@ -1,8 +1,16 @@
 #!/bin/bash
 
+if [ "x$1" == "x--help" ]; then
+    echo "usage: $0 <project>"
+    echo
+    echo "Activate SSL for a website (wordpress only)"
+    echo
+    exit 1
+fi
+
 . _scripts/base.sh
 
-echo $PROJECT ...
+echo $PROJECT ..."
 
 if [ "x$TYPE" = "xwordpress" ]; then
 

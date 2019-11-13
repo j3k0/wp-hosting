@@ -20,13 +20,11 @@ cat << EOF
 
 # $DOMAIN
 
-** Wordpress **
+** Website URL **
 
-Website URL:
 $WWW_URLS
 ** phpMyAdmin **
 
-phpMyAdmin URL:
 $PHPMYADMIN_URLS
 phpMyAdmin Username: admin
 phpMyAdmin Password: $ADMIN_PASSWORD
@@ -40,8 +38,10 @@ SFTP Password: $ADMIN_PASSWORD
 
 ** DNS **
 
+\`\`\`
 $DOMAIN. A ${BACKEND_IP}
 www.$DOMAIN. CNAME ${BACKEND_WWW_DOMAIN}.
 cdn.$DOMAIN. CNAME ${BACKEND_CDN_DOMAIN}.
+\`\`\`
 
 EOF
