@@ -33,7 +33,9 @@ if [ "`./version.sh $PROJECT`" = 1 ]; then
     ./start.sh $PROJECT
 elif [ "`./version.sh $PROJECT`" = 2 ]; then
     echo "Updating docker-compose.yml and php.ini"
+    test -e $PROJECT/php.ini && cp $PROJECT/php.ini $PROJECT/php.ini.bak
     ./_scripts/php.ini.sh > $PROJECT/php.ini
+    test -e $PROJECT/php.ini.patch && (cd $PROJECT; patch -p1 < php.ini.patch)
     ./_scripts/docker-compose.yml.sh > $PROJECT/docker-compose.yml
     if [ "x$STATE" != "xDISABLED" ]; then
         ./docker-compose.sh $PROJECT build || true
