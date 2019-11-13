@@ -7,13 +7,21 @@ if test -e $PROJECT/docker-compose.yml; then
     ./docker-compose.sh $PROJECT up -d
     sleep 3
     ./fix-permissions.sh $PROJECT
-    if ./wp-cli.sh $PROJECT core is-installed; then
-        echo "Wordpress already installed."
+    if [ "x$TYPE" = "xwordpress" ]; then
+        if ./wp-cli.sh $PROJECT core is-installed; then
+            echo "Wordpress already installed."
+        else
+            echo "Installing Wordpress..."
+            ./wp-cli.sh $PROJECT core install --url=http://$DOMAIN --title=$DOMAIN --admin_user=admin --admin_password=$ADMIN_PASSWORD --admin_email=admin@$DOMAIN
+            # ./wp-cli.sh $PROJECT plugin install hectane --activate
+            # ./wp-cli.sh $PROJECT option set hectane_settings '{"host":"mail","port":"8025","tls_ignore":"on","username":"","password":""}' --format=json
+        fi
     else
-        echo "Installing Wordpress..."
-        ./wp-cli.sh $PROJECT core install --url=http://$DOMAIN --title=$DOMAIN --admin_user=admin --admin_password=$ADMIN_PASSWORD --admin_email=admin@$DOMAIN
-        # ./wp-cli.sh $PROJECT plugin install hectane --activate
-        # ./wp-cli.sh $PROJECT option set hectane_settings '{"host":"mail","port":"8025","tls_ignore":"on","username":"","password":""}' --format=json
+        WWW_DIR="$PROJECT/volumes/html"
+        sudo touch "$WWW_DIR/wp-load.php"
+        if test ! -e "$WWW_DIR/index.php" && test ! -e "$WWW_DIR/index.html"; then
+            ./_scripts/index.html.sh | sudo tee "$WWW_DIR/index.html"
+        fi
     fi
     ./fix-permissions.sh $PROJECT
     # ./install-extensions.sh $PROJECT
@@ -23,7 +31,7 @@ if test -e $PROJECT/docker-compose.yml; then
     fi
 
     if test ! -e "$PROJECT/docker-compose.override.yml"; then
-        cp _scripts/docker-compose.override.yml "$PROJECT/docker-compose.override.yml"
+        ./_scripts/docker-compose.override.yml.sh "$PROJECT/docker-compose.override.yml"
     fi
     # ./letsencrypt.sh $PROJECT
 

@@ -2,14 +2,18 @@
 
 set -e
 cd "$(dirname "$0")"
-if [ "x$1" = "x" ] || [ "x$2" = "x" ]; then
-    echo "Usage: $0 <project> <domain>"
+if [ "x$1" = "x" ] || [ "x$2" = "x" ] || [ "x$3" = "x" ]; then
+    echo "Usage: $0 <project> <domain> <type>"
     echo
     echo "Generate a project with a sample config file: $PROJECT/config"
+    echo
+    echo "Type can be 'wordpress' or 'php'."
+    echo
     exit 1
 fi
 export PROJECT="$1"
 export DOMAIN="$2"
+export TYPE="$3"
 
 if [ "_$(echo "$PROJECT" | cut -d. -f1)" != _wp ]; then
     echo "Project name must start with wp."

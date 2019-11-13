@@ -25,6 +25,7 @@ export PHPMYADMIN_PORT
 export SFTP_PORT
 export ROOT_PASSWORD
 export ADMIN_PASSWORD
+export TYPE
 
 if [ "x$DOMAIN" = "x" ]; then
     DOMAIN=$PROJECT

@@ -53,6 +53,10 @@ sleep 60
 echo "Create phpMyAdmin database user"
 docker run --rm -it --network=${APPNAME}_default --link ${APPNAME}_db_1:db mysql mysql -hdb -uroot -p$ROOT_PASSWORD -e "GRANT ALL PRIVILEGES ON phpmyadmin.* TO 'admin'@'%';"
 
+# Generate the docker-compose override file
+# (potentially disabling SQL and phpmyadmin now, but at least its setup)
+./_scripts/docker-compose.override.yml.sh > $PROJECT/docker-compose.override.yml
+
 echo "You can now start the server with the command below:"
 echo
 echo "    ./start.sh $PROJECT"
