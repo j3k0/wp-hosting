@@ -1,0 +1,15 @@
+#!/bin/bash
+cd "$(dirname "$0")"
+
+curl -s 'localhost/nginx_status' > nginx_status
+
+NGINX_ACTIVE_CONNECTIONS="$(cat nginx_status | awk '/^Active connections:/{print $3}')"
+NGINX_READING="$(cat nginx_status | awk '/^Reading:/{print $2}')"
+NGINX_WRITING="$(cat nginx_status | awk '/^Reading:/{print $4}')"
+NGINX_WAITING="$(cat nginx_status | awk '/^Reading:/{print $6}')"
+
+echo -n "nginx.active_connections:$NGINX_ACTIVE_CONNECTIONS|g" | nc -w 1 -u 127.0.0.1 58293
+echo -n "nginx.reading:$NGINX_READING|g" | nc -w 1 -u 127.0.0.1 58293
+echo -n "nginx.writing:$NGINX_WRITING|g" | nc -w 1 -u 127.0.0.1 58293
+echo -n "nginx.waiting:$NGINX_WAITING|g" | nc -w 1 -u 127.0.0.1 58293
+

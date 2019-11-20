@@ -8,3 +8,9 @@
 /pressmantoy.com/
 /shop.pressmantoy.com/
 /config
+/monitoring/nginx/nginx*
+/monitoring/docker-compose.override.yml
+/monitoring/grafana/
+/monitoring/nginx-site
+/monitoring/nginx_status
+/monitoring/statsd/

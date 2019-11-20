@@ -1,0 +1,10 @@
+server {
+	server_name grafana.example.com;
+	location / {
+		proxy_pass http://127.0.0.1:58291;
+        include /apps/wp-hosting/config/nginx_proxy_params;
+	}
+	listen 80;
+
+    # then run certbot to activate SSL
+}

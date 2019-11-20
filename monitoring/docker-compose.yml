@@ -1,0 +1,29 @@
+version: '2.2'
+services:
+    statsd:
+        image: "graphiteapp/graphite-statsd"
+        ports:
+            - 127.0.0.1:58292:80
+            - 127.0.0.1:58293:8125/udp
+        # ports:
+        #   - 10.0.2.50:2080:80
+        #   - 10.0.2.50:2003:2003
+        #   - 10.0.2.50:2004:2004
+        #   - 10.0.2.50:2023:2023
+        #   - 10.0.2.50:2024:2024
+        #   - 10.0.2.50:8125:8125/udp
+        #   - 10.0.2.50:8126:8126
+        volumes:
+            - ./statsd/storage:/opt/graphite/storage
+            - ./statsd-config.js:/opt/statsd/config.js
+        restart: always
+
+    grafana:
+        image: grafana/grafana
+        ports:
+            - 58291:3000
+        volumes:
+            - ./grafana:/var/lib/grafana
+        environment:
+            - "GF_SERVER_ROOT_URL=change-in-docker-compose.override.yml"
+            - "GF_SECURITY_ADMIN_PASSWORD=change-in-docker-compose.override.yml"
