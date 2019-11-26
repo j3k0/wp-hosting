@@ -25,6 +25,11 @@ server {
         proxy_pass http://127.0.0.1:$WORDPRESS_PORT;
         include ${PWD}/config/nginx_proxy_params_static;
     }
+    location = /wp-login.php {
+        limit_req zone=one burst=1 nodelay;
+		proxy_pass http://127.0.0.1:$WORDPRESS_PORT;
+        include /apps/wp-hosting/config/nginx_proxy_params;
+    }
 
     listen 443 ssl http2;
     include ${PWD}/config/nginx_ssl_params;
