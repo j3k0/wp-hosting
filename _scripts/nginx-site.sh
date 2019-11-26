@@ -26,7 +26,7 @@ server {
         include ${PWD}/config/nginx_proxy_params_static;
     }
 
-    listen 443 ssl;
+    listen 443 ssl http2;
     include ${PWD}/config/nginx_ssl_params;
     ssl_certificate ${PWD}/${PROJECT}/ssl/nginx.crt;
     ssl_certificate_key ${PWD}/${PROJECT}/ssl/nginx.key;
@@ -42,7 +42,7 @@ server {
         include ${PWD}/config/nginx_proxy_params;
 	}
 
-    listen 443 ssl;
+    listen 443 ssl http2;
     include ${PWD}/config/nginx_ssl_params;
     ssl_certificate ${PWD}/${PROJECT}/ssl/nginx.crt;
     ssl_certificate_key ${PWD}/${PROJECT}/ssl/nginx.key;
