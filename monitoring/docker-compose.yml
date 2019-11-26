@@ -27,3 +27,19 @@ services:
         environment:
             - "GF_SERVER_ROOT_URL=change-in-docker-compose.override.yml"
             - "GF_SECURITY_ADMIN_PASSWORD=change-in-docker-compose.override.yml"
+
+    influxdb:
+        image: influxdb
+        volumes:
+            - ./influxdb:/var/lib/influxdb
+
+    telegraf:
+        image: telegraf:alpine
+        environment:
+            - "HOST_PROC=/host/proc"
+        hostname: "www-01"
+        volumes:
+            - ./telegraf.conf:/etc/telegraf/telegraf.conf:ro
+            - /proc:/host/proc:ro
+            - /var/run/docker.sock:/var/run/docker.sock
+
