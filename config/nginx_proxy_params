@@ -13,6 +13,7 @@ proxy_set_header X-Forwarded-Proto $scheme;
 server_tokens off;
 proxy_hide_header X-Powered-By;
 
+proxy_cache            off;
 # proxy_cache            cacheone;
 # proxy_cache_key        "$scheme$host$request_uri";
 # proxy_cache_valid      200 1d;
