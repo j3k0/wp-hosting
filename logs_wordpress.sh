@@ -8,7 +8,7 @@ alias yellow-grep="GREP_COLOR='1;33' grep -E --color=always --line-buffered"
 alias violet-grep="GREP_COLOR='1;35' grep -E --color=always --line-buffered"
 alias cyan-grep="GREP_COLOR='1;36' grep -E --color=always --line-buffered"
 
-. _scripts/base.sh
+. "$(dirname "$0")/_scripts/base.sh"
 shift
 
 if test -e $PROJECT/docker-compose.yml; then
@@ -25,5 +25,6 @@ if test -e $PROJECT/docker-compose.yml; then
         | yellow-grep "\"(GET|POST|HEAD|PUT|OPTIONS) [^\"]+\" 4[0-9]+|$" \
         | red-grep "\"(GET|POST|HEAD|PUT|OPTIONS) [^\"]+\" 5[0-9]+|$" \
         | grey-grep "\"[^\"]*\"$|$" \
+        | red-grep "^wp\\(.*$|$" \
 
 fi
