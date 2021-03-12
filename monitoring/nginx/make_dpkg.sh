@@ -1,5 +1,7 @@
 #!/bin/bash -ex
 
+set -e
+
 cd "$(dirname "$0")"
 WORKSPACE="$(pwd)"
 
@@ -14,7 +16,7 @@ cd $WORKSPACE/nginx-*/debian/
 
 # Increment the package version by updating the changelog
 cat > changelog <<EOF
-nginx (1.16.0-${BUILD_NUMBER}.local) trusty; urgency=medium
+nginx (1.16.1-${BUILD_NUMBER}.local) trusty; urgency=medium
   * Package built by jenkins
  -- jenkins <${USER}@${NODE_NAME}>  $(date -R)
 EOF
@@ -31,4 +33,4 @@ sed -i 's|CFLAGS="" ./configure \\|CFLAGS="" ./configure --add-module=debian/mod
 
 cd $WORKSPACE/nginx-*/
 
-dpkg-buildpackage
+dpkg-buildpackage --no-sign

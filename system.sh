@@ -2,7 +2,7 @@
 echo
 echo "Disk usage:"
 echo "-----------"
-df -h / /backups/ /meta-backup/ | awk '{printf "    %-14s %s\n", $6, $5}' | grep -E '[0-9]+%'
+df -h / /apps/wp-hosting/ /backups/ /meta-backup/ | awk '{printf "    %-14s %s\n", $6, $5}' | grep -E '[0-9]+%'
 echo
 echo "Memory:"
 echo "-------"
