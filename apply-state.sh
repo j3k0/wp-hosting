@@ -7,9 +7,9 @@ if [ "x$STATE" == "xDISABLED" ]; then
     echo "$PROJECT ..."
     ./docker-compose.sh "$PROJECT" down -v
     rm -f "/etc/nginx/sites-enabled/$PROJECT"
-    LETSENCRYPT_IDS=$(cat "$PROJECT"/nginx-site |grep /etc/letsencrypt/live|grep fullchain.pem|cut -d/ -f5)
+    LETSENCRYPT_IDS=$(grep /etc/letsencrypt/live "$PROJECT"/nginx-site | grep fullchain.pem | cut -d/ -f5)
     for ID in $LETSENCRYPT_IDS; do
-        sudo certbot delete --cert-name $ID || true
+        sudo certbot delete --cert-name "$ID" || true
     done
     cp "$PROJECT/nginx-site" "$PROJECT/.nginx-site.bak"
     ./_scripts/nginx-site.sh > "$PROJECT/nginx-site"

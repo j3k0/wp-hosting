@@ -26,6 +26,7 @@ export SFTP_PORT
 export ROOT_PASSWORD
 export ADMIN_PASSWORD
 export TYPE
+export WORDPRESS_PATH
 
 if [ "x$DOMAIN" = "x" ]; then
     DOMAIN=$PROJECT

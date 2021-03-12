@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 if [ "x$1" == "x--help" ]; then
     echo "usage: $0 <project>"
     echo
@@ -10,7 +12,7 @@ fi
 
 . _scripts/base.sh
 
-echo $PROJECT ..."
+echo "$PROJECT ..."
 
 if [ "x$TYPE" = "xwordpress" ]; then
 
@@ -91,5 +93,6 @@ else
     echo "Website is not using wordpress, not much I can do here..."
 fi
 
-# Make sure spdy is enabled
-sed --in-place=.bak 's/listen 443 ssl;/listen 443 ssl spdy;/g' $PROJECT/nginx-site
+# Make sure http2 is enabled
+sed --in-place=.bak 's/listen 443 ssl;/listen 443 ssl http2;/g' $PROJECT/nginx-site
+
