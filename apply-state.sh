@@ -20,7 +20,7 @@ if [ "x$STATE" == "xDISABLED" ]; then
     fi
 else
     ./docker-compose.sh "$PROJECT" up -d
-    if test ! -e "/etc/nginx/sites-enabled/$PROJECT"; then
+    if test -d "/etc/nginx/sites-enabled" && test ! -e "/etc/nginx/sites-enabled/$PROJECT"; then
         ln -s "$(pwd)/$PROJECT/nginx-site" "/etc/nginx/sites-enabled/$PROJECT"
     fi
 fi

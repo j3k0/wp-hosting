@@ -39,9 +39,11 @@ sudo mkdir -p /backups/$PROJECT
 # if [ "x$ANSWER" = "xy" ] || [ "x$ANSWER" = "xY" ]; then ./ovhcdn.sh $DOMAIN; fi
 
 echo Install the nginx config
-if ! test -e /etc/nginx/sites-enabled/$PROJECT; then
+if test -d /etc/nginx/sites-enabled && ! test -e /etc/nginx/sites-enabled/$PROJECT; then
     echo "Installing /etc/nginx/sites-enabled/$PROJECT"
     ln -s $(pwd)/$PROJECT/nginx-site /etc/nginx/sites-enabled/$PROJECT
+else
+    echo "Skip..."
 fi
 
 echo MySQL needs time to start
