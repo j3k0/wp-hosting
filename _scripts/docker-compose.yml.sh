@@ -5,8 +5,9 @@ if [ "x$PROJECT" = "x" ]; then
     exit 1
 fi
 
+. "$(dirname "$0")/../config/base"
 SUBNET="`./subnet.sh $PROJECT`"
-HOST_HOSTNAME="$(hostname -A)"
+HOST_HOSTNAME="$PUBLIC_HOSTNAME"
 
 cat << EOF
 version: '2.2'
