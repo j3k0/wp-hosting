@@ -1,5 +1,7 @@
 #!/bin/bash
 
+. "$(dirname "$0")/../config/base"
+
 PREEXT=$(echo $DOMAIN | cut -d. -f2)
 EXT=$(echo $DOMAIN | cut -d. -f3)
 if [ "x$EXT" = "x" ] || [ ${#PREEXT} -le 2 ]; then
@@ -8,34 +10,37 @@ else
     WWW_DOMAIN=
 fi
 
+ROOT_DIR="${ROOT_DIR:-/apps/wp-hosting}"
+SSL_DIR="${SSL_DIR:-$ROOT_DIR/$PROJECT/ssl}"
+CONFIG_DIR="${CONFIG_DIR:-$ROOT_DIR/config}"
+
 cat << EOF
 
 server {
 	listen 80;
 	client_max_body_size 32m;
 	server_name ${DOMAIN} ${WWW_DOMAIN} ${BACKEND_WWW_DOMAIN};
-    location ~ /\.git {
-        deny all;
-    }
-	location / {
-		proxy_pass http://127.0.0.1:$WORDPRESS_PORT;
-        include ${PWD}/config/nginx_proxy_params;
+	location ~ /\.git {
+		deny all;
 	}
-    location /wp-content/upload/ {
-        proxy_pass http://127.0.0.1:$WORDPRESS_PORT;
-        include ${PWD}/config/nginx_proxy_params_static;
-    }
-    location = /wp-login.php {
-        limit_req zone=one burst=1 nodelay;
-		proxy_pass http://127.0.0.1:$WORDPRESS_PORT;
-        include /apps/wp-hosting/config/nginx_proxy_params;
-    }
-
-    listen 443 ssl http2;
-    include ${PWD}/config/nginx_ssl_params;
-    ssl_certificate ${PWD}/${PROJECT}/ssl/nginx.crt;
-    ssl_certificate_key ${PWD}/${PROJECT}/ssl/nginx.key;
-    include ${PWD}/config/nginx_gzip;
+	location / {
+		proxy_pass http://www-backend:$WORDPRESS_PORT;
+		include ${CONFIG_DIR}/nginx_proxy_params;
+	}
+	location /wp-content/upload/ {
+		proxy_pass http://www-backend:$WORDPRESS_PORT;
+		include ${CONFIG_DIR}/nginx_proxy_params_static;
+	}
+	location = /wp-login.php {
+		# limit_req zone=one burst=1 nodelay;
+		proxy_pass http://www-backend:$WORDPRESS_PORT;
+		include ${CONFIG_DIR}/nginx_proxy_params;
+	}
+	listen 443 ssl http2;
+	include ${CONFIG_DIR}/nginx_ssl_params;
+	ssl_certificate ${SSL_DIR}/nginx.crt;
+	ssl_certificate_key ${SSL_DIR}/nginx.key;
+	include ${CONFIG_DIR}/nginx_gzip;
 }
 
 server {
@@ -43,15 +48,16 @@ server {
 	client_max_body_size 32m;
 	server_name ${BACKEND_PMA_DOMAIN};
 	location / {
-		proxy_pass http://127.0.0.1:$PHPMYADMIN_PORT;
-        include ${PWD}/config/nginx_proxy_params;
+		proxy_pass http://www-backend:$PHPMYADMIN_PORT;
+		include ${CONFIG_DIR}/nginx_proxy_params;
 	}
 
-    listen 443 ssl http2;
-    include ${PWD}/config/nginx_ssl_params;
-    ssl_certificate ${PWD}/${PROJECT}/ssl/nginx.crt;
-    ssl_certificate_key ${PWD}/${PROJECT}/ssl/nginx.key;
-    include ${PWD}/config/nginx_gzip;
+	listen 443 ssl http2;
+	include ${CONFIG_DIR}/nginx_ssl_params;
+	ssl_certificate ${SSL_DIR}/nginx.crt;
+	ssl_certificate_key ${SSL_DIR}/nginx.key;
+	include ${CONFIG_DIR}/nginx_gzip;
 }
 
 EOF
+
