@@ -31,7 +31,7 @@ phpMyAdmin Password: $ADMIN_PASSWORD
 
 ** SFTP **
 
-SFTP Host: $PROJECT.${BACKEND_DOMAIN}
+SFTP Host: $SFTP_HOSTNAME
 SFTP Port: $SFTP_PORT
 SFTP Username: admin
 SFTP Password: $ADMIN_PASSWORD
