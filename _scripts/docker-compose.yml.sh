@@ -101,6 +101,8 @@ cat << EOF
     environment:
       - PMA_HOST=db
       - PMA_VERBOSE=MySQL
+      - UPLOAD_LIMIT=1G
+      - MAX_EXECUTION_TIME=6000
     ports:
       - $PHPMYADMIN_PORT:80
     restart: always
