@@ -19,4 +19,4 @@ else
     echo "ERROR: Project not initialized."
 fi
 
-sudo rm -fr /cache/nginx/[a-z0-9]
+# sudo rm -fr /cache/nginx/[a-z0-9]
