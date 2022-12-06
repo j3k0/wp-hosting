@@ -6,6 +6,7 @@ echo "$PROJECT ... ${STATE:-ENABLED}"
 if [ "x$STATE" == "xDISABLED" ]; then
     echo "$PROJECT ..."
     ./docker-compose.sh "$PROJECT" down -v
+    docker network rm "${APPNAME}_default" || true
     rm -f "/etc/nginx/sites-enabled/$PROJECT"
     LETSENCRYPT_IDS=$(grep /etc/letsencrypt/live "$PROJECT"/nginx-site | grep fullchain.pem | cut -d/ -f5)
     for ID in $LETSENCRYPT_IDS; do
