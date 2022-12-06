@@ -14,17 +14,17 @@ fi
 
 echo "$PROJECT ..."
 
-if [ "x$TYPE" = "xwordpress" ]; then
+if [ "x$TYPE" = "xwordpress" ] || [ "x$FORCE" = "x1" ] ; then
 
     if [ "x$NO_CHECK" != "x1" ] && sudo cat $PROJECT/volumes/html/wp-config.php | grep _SERVER | grep HTTPS | grep on; then
         echo $PROJECT already setup
         exit 0
     fi
 
-    if ! cat $PROJECT/nginx-site | grep ssl_certificate_key | grep letsencrypt | grep -v phpmyadmin; then
-        echo "$PROJECT does not have a letsencrypt certificate"
-        exit 0
-    fi
+    # if ! cat $PROJECT/nginx-site | grep ssl_certificate_key | grep letsencrypt | grep -v phpmyadmin; then
+    #     echo "$PROJECT does not have a letsencrypt certificate"
+    #     exit 0
+    # fi
 
     echo "search-replace http://$DOMAIN to $(./main-url.sh $PROJECT)"
     echo "Do it? (y/n)"
