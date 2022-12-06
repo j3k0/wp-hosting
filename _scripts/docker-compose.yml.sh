@@ -48,7 +48,7 @@ services:
     cpus: 1.0
 
   db:
-    image: mysql:5.6
+    image: mysql:5.7
     volumes:
       - ./volumes/mysql:/var/lib/mysql
     networks:
