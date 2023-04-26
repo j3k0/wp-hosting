@@ -1,5 +1,10 @@
 set -e
-cd "$(dirname "$0")"
+if [ "$(basename "$(dirname "$0")")" == "_scripts" ]; then
+    cd "$(dirname "$0")/.."
+else
+    cd "$(dirname "$0")"
+fi
+
 
 STATE=
 TYPE=
