@@ -1,6 +1,6 @@
-#!/bin/sh
+#!/bin/bash
 . _scripts/base.sh
-if [ `whoami` != root ]; then
+if [ $(whoami) != root ]; then
     echo Please, run this as root or you might loose file permissions!
     exit 1
 fi
