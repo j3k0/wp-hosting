@@ -7,6 +7,12 @@ if [ "x$2" = "x" ]; then
     echo "Usage: $0 <project> <date>"
     echo
     echo "<date>: The timestamp of the backup to flatten, in the format yyyyMMdd."
+    echo
+    echo "ENVIRONMENT VARIABLES"
+    echo "WIPEOUT_INCREMENTAL: set to YES to replace the incremental backups with the flat one"
+    echo
+    echo "press RETURN to list available backups"
+    read X
     listBackups $PROJECT
     exit 1
 fi
