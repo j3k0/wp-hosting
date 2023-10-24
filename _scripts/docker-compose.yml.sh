@@ -79,6 +79,7 @@ services:
       - MYSQL_ENV_MYSQL_DATABASE=wordpress
       - MYSQL_PORT_3306_TCP_ADDR=mysql
       - MYSQL_PORT_3306_TCP_PORT=3306
+      - TAR_ARGS=--exclude=./wp-content/cache --exclude=./wp-content/wpvividbackups --exclude=./wp-content/ai1wm-backups --exclude=./wp-content/backups-dup-lite --exclude=./wp-content/updraft
     restart: always
     mem_limit: 64M
     memswap_limit: 32M
