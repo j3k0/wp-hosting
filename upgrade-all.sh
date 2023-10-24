@@ -44,6 +44,9 @@ echo "Let's go!"
 echo
 
 for i in $CONFIRMED_LIST; do
+    echo
+    echo "==== $i ===="
+    echo
     ./upgrade.sh "$i"
     if [ "x$SLEEP_BETWEEN" != "x" ]; then
         sleep "$SLEEP_BETWEEN"
