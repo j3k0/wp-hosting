@@ -1,5 +1,17 @@
 #!/bin/bash
 
+if [ "x$1" = "x--help" ]; then
+    echo "usage: $0 [--yes] [--sites ...]"
+    echo " --yes ............. upgrade all sites"
+    echo " --sites <a> <b> ... upgrade the given sites"
+    echo
+    echo "env vars:"
+    echo " - SKIP_DOCKER ........... set to YES to disable rebuilding docker images"
+    echo " - SLEEP_BETWEEN [sec] ... sleep a given number of seconds between sites"
+    echo
+    exit 0
+fi
+
 CONFIRMED_LIST=""
 if [ "x$1" = "x--sites" ]; then
     shift
