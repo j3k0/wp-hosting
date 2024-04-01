@@ -14,3 +14,4 @@ echo "Generate and copy nginx config"
 ./_scripts/nginx-site.sh > $PROJECT/nginx-site
 scp "$PROJECT/nginx-site" root@wp-hosting-lb:/etc/nginx/sites-available/$PROJECT.conf
 ssh root@wp-hosting-lb ln -s ../sites-available/$PROJECT.conf /etc/nginx/sites-enabled/$PROJECT.conf
+ssh root@wp-hosting-lb service nginx reload

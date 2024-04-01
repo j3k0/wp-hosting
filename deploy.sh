@@ -10,6 +10,7 @@ TYPE="$3"
 ./initialize.sh "$PROJECT"
 ./start.sh "$PROJECT"
 
-sudo service nginx reload
+# sudo service nginx reload
+./nginx-site.sh "$PROJECT"
 
 ./info.sh "$PROJECT"
