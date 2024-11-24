@@ -1,0 +1,25 @@
+{
+    "name": "wp-hosting-dashboard",
+    "version": "1.0.0",
+    "description": "Fovea Hosting Dashboard",
+    "private": true,
+    "main": "src/server.js",
+    "scripts": {
+        "setup": "node setup.js",
+        "start": "node src/server.js",
+        "dev": "nodemon src/server.js"
+    },
+    "dependencies": {
+        "bcryptjs": "^2.4.3",
+        "cookie-parser": "^1.4.6",
+        "dotenv": "^16.0.3",
+        "express": "^4.18.2",
+        "handlebars": "^4.7.8",
+        "https": "^1.0.0",
+        "jsonwebtoken": "^8.5.1",
+        "navigo": "^8.11.1"
+    },
+    "devDependencies": {
+        "nodemon": "^2.0.22"
+    }
+}

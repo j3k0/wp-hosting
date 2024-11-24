@@ -1,0 +1,180 @@
+/* Keep layout related styles but remove color-related properties */
+.container {
+    --block-spacing-vertical: var(--spacing);
+    max-width: 1200px;
+    padding: var(--spacing);
+}
+
+nav {
+    --nav-link-spacing-vertical: 0.75rem;
+    padding: 0.5rem var(--spacing);
+    margin-bottom: var(--spacing);
+}
+
+article {
+    margin: var(--spacing) 0;
+    padding: var(--spacing);
+}
+
+/* Tables */
+table {
+    --spacing-vertical: 0.5rem;
+    margin: 0;
+}
+
+td, th {
+    padding: 0.5rem;
+}
+
+/* Grid and Cards */
+.grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: var(--spacing);
+    margin: var(--spacing) 0;
+}
+
+.card {
+    margin: 0;
+    padding: var(--spacing);
+    border-radius: var(--border-radius);
+}
+
+.card h3 {
+    margin: 0;
+    font-size: 1.2rem;
+}
+
+.card p {
+    margin: 0.5rem 0 0 0;
+    font-size: 0.9rem;
+    color: var(--muted-color);
+}
+
+/* Action buttons */
+.action-btn {
+    padding: 0.4rem;
+    margin: 0 0.2rem;
+    background: none;
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+/* Update info sections to use Tabler's styling */
+.info-section {
+    margin-bottom: var(--spacing);
+    padding: var(--spacing);
+    border-radius: var(--border-radius);
+}
+
+.info-section h3 {
+    margin: 0 0 var(--spacing) 0;
+    font-size: 1.1rem;
+}
+
+.info-credentials {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.credential-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    background: var(--card-sectionground-color);
+    border-radius: var(--border-radius);
+}
+
+.credential-value {
+    font-family: var(--font-family-monospace);
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--border-radius);
+    font-size: 0.9rem;
+}
+
+/* Back button */
+.back-button {
+    margin-bottom: var(--spacing);
+    padding: 0.5rem 1rem;
+}
+
+/* Lists */
+.info-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.info-list li {
+    padding: 0.5rem;
+    border-bottom: 1px solid var(--card-sectionground-color);
+}
+
+.info-list li:last-child {
+    border-bottom: none;
+}
+
+/* DNS and Raw info */
+.info-dns,
+.info-raw {
+    margin: 0;
+    padding: var(--spacing);
+    border-radius: var(--border-radius);
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .credential-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .container {
+        padding: 0.5rem;
+    }
+    
+    td, th {
+        padding: 0.4rem;
+        font-size: 0.9rem;
+    }
+}
+
+/* Login form adjustments */
+.login-container article {
+    max-width: 400px;
+    margin: 2rem auto;
+}
+
+.login-container hgroup {
+    margin-bottom: var(--spacing);
+}
+
+.login-container hgroup h1 {
+    margin-bottom: 0.5rem;
+}
+
+.login-container hgroup h2 {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--muted-color);
+}
+
+/* Add these styles for table cells */
+.table-nowrap td {
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.table-compact {
+    font-size: 0.875rem;
+}
+
+.usage-cell {
+    text-align: right;
+    padding-right: 1rem;
+}
