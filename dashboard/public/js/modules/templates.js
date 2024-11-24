@@ -45,6 +45,12 @@ export const Templates = {
                             Customers
                         </h2>
                     </div>
+                    <div class="col-auto">
+                        <a href="/users" data-navigo class="btn btn-primary">
+                            <i class="ti ti-settings me-2"></i>
+                            Manage Users
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -83,11 +89,13 @@ export const Templates = {
             <div class="container-xl">
                 <div class="row g-2 align-items-center">
                     <div class="col">
+                        {{#if ../userData.isAdmin}}
                         <div class="page-pretitle">
                             <a href="/customers" data-navigo class="text-muted">
                                 <i class="ti ti-arrow-left"></i> Back to Customers
                             </a>
                         </div>
+                        {{/if}}
                         <h2 class="page-title">
                             <i class="ti ti-world me-2"></i>
                             Websites for {{customerId}}

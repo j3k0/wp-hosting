@@ -17,11 +17,29 @@ window.userData = null;
 // Header management
 function updateHeaderVisibility() {
     const header = document.getElementById('header');
-    const adminControls = document.getElementById('adminControls');
+    const adminElements = document.querySelectorAll('.admin-only');
+    const clientElements = document.querySelectorAll('.client-only');
     
     if (window.userData && window.location.pathname !== '/login') {
+        // Show header
         header.classList.remove('d-none');
-        adminControls.style.display = window.userData.isAdmin ? 'block' : 'none';
+        
+        // Show/hide admin elements
+        adminElements.forEach(el => {
+            el.classList.toggle('d-none', !window.userData.isAdmin);
+        });
+        
+        // Show/hide client elements
+        clientElements.forEach(el => {
+            el.classList.toggle('d-none', window.userData.isAdmin);
+        });
+
+        // Debug log
+        console.log('Header visibility updated:', {
+            isAdmin: window.userData.isAdmin,
+            adminElements: adminElements.length,
+            clientElements: clientElements.length
+        });
     } else {
         header.classList.add('d-none');
     }

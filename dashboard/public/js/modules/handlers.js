@@ -47,7 +47,11 @@ export const Handlers = {
                 siteName: site.name.split('.').slice(2).join('.'),
                 usage: formatBytes(site.usage)
             }));
-            render(Templates.websites, { customerId: data.customerId, sites });
+            render(Templates.websites, { 
+                customerId: data.customerId, 
+                sites,
+                userData: window.userData 
+            });
         } catch (error) {
             console.error('Failed to load websites:', error);
             alert('Failed to load websites: ' + error.message);
@@ -59,18 +63,22 @@ export const Handlers = {
             const fullSiteName = `wp.${data.customerId}.${data.siteName}`;
             const info = await API.get(`websites/${fullSiteName}/info`);
             
+            const templateData = {
+                customerId: data.customerId,
+                siteName: data.siteName,
+                userData: window.userData 
+            };
+
             if (info.raw && !info.urls) {
                 render(Templates.websiteInfo, { 
-                    customerId: data.customerId, 
-                    siteName: data.siteName, 
+                    ...templateData,
                     raw: info.raw 
                 });
                 return;
             }
 
             render(Templates.websiteInfo, {
-                customerId: data.customerId,
-                siteName: data.siteName,
+                ...templateData,
                 urls: info.urls,
                 phpmyadmin: info.phpmyadmin,
                 sftp: info.sftp,
@@ -136,7 +144,7 @@ export const Handlers = {
             window.deleteUser = async (username) => {
                 if (confirm(`Are you sure you want to delete user "${username}"?`)) {
                     try {
-                        await API.post(`users/${username}/delete`);
+                        await API.delete(`users/${username}`);
                         // Refresh users list
                         Handlers.users();
                     } catch (error) {

@@ -21,5 +21,15 @@ export const API = {
             throw new Error(`API Error: ${response.statusText}`);
         }
         return response.json();
+    },
+
+    async delete(endpoint) {
+        const response = await fetch(`/api/${endpoint}`, {
+            method: 'DELETE'
+        });
+        if (!response.ok) {
+            throw new Error(`API Error: ${response.statusText}`);
+        }
+        return response.json();
     }
 }; 

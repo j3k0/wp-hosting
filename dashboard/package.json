@@ -7,7 +7,7 @@
     "scripts": {
         "setup": "node setup.js",
         "start": "node src/server.js",
-        "dev": "nodemon src/server.js"
+        "dev": "nodemon --ignore 'config/*' src/server.js"
     },
     "dependencies": {
         "bcryptjs": "^2.4.3",

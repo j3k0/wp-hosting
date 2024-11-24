@@ -162,6 +162,28 @@ const auth = {
         } catch (error) {
             res.status(500).json({ error: 'Failed to reset password' });
         }
+    },
+
+    async deleteUser(req, res) {
+        try {
+            const { username } = req.params;
+            const users = await getUsers();
+            
+            if (!users[username]) {
+                return res.status(404).json({ error: 'User not found' });
+            }
+
+            if (users[username].is_admin) {
+                return res.status(403).json({ error: 'Cannot delete admin user' });
+            }
+
+            delete users[username];
+            await saveUsers(users);
+            
+            res.json({ message: 'User deleted successfully' });
+        } catch (error) {
+            res.status(500).json({ error: 'Failed to delete user' });
+        }
     }
 };
 

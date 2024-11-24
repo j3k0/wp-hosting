@@ -39,6 +39,7 @@ app.get('/api/websites/:siteName/info', auth.authenticate, websites.getWebsiteIn
 // User routes
 app.get('/api/users', auth.authenticateAdmin, auth.listUsers);
 app.post('/api/users/:username/reset-password', auth.authenticateAdmin, auth.resetPassword);
+app.delete('/api/users/:username', auth.authenticateAdmin, auth.deleteUser);
 
 // Serve the frontend - must be last route
 app.get('*', (req, res) => {
