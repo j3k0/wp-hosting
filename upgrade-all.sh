@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ "x$1" = "x--help" ]; then
+function usage() {
     echo "usage: $0 [--yes] [--sites ...]"
     echo " --yes ............. upgrade all sites"
     echo " --sites <a> <b> ... upgrade the given sites"
@@ -10,6 +10,10 @@ if [ "x$1" = "x--help" ]; then
     echo " - SLEEP_BETWEEN [sec] ... sleep a given number of seconds between sites"
     echo
     exit 0
+}
+
+if [ "x$1" = "x--help" ]; then
+    usage
 fi
 
 CONFIRMED_LIST=""
@@ -20,6 +24,9 @@ if [ "x$1" = "x--sites" ]; then
        shift
     done
 else
+    if [ "x$1" != "x" ] && [ "x$1" != "x-y" ] || [ "x$1" != "x--yes" ]; then
+        usage
+    fi
     YES=$([ "x$1" = "x-y" ] || [ "x$1" == "x--yes" ] && echo "1" || echo "0")
     for i in $(./ls.sh); do
         if [ $YES == 1 ]; then

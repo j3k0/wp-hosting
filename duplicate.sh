@@ -95,15 +95,21 @@ DESTINATION_WWW_PATH="$(pwd)/$DESTINATION_PROJECT/volumes/html"
 
 # Extract current source and destination URLs
 SOURCE_URL=$(safe_wp_cli $SOURCE_PROJECT option get siteurl | tr -d '\r' | tr -d '\n')
-echo "Destination URL: (ENTER for auto-detect)"
+AUTO_DETECT_DESTINATION_URL="https://$(cat "$DESTINATION_PROJECT/config" | grep -E '^DOMAIN=' | cut -d= -f2)"
+echo "Destination URL: (ENTER for auto-detect = $AUTO_DETECT_DESTINATION_URL)"
 read DESTINATION_URL
 if [ "x$DESTINATION_URL" = "x" ]; then
-    DESTINATION_URL=$(safe_wp_cli $DESTINATION_PROJECT option get siteurl | tr -d '\r' | tr -d '\n')
+    DESTINATION_URL="$AUTO_DETECT_DESTINATION_URL"
 fi
 
 # Extract current and destination servers
 SOURCE_SERVER=$(echo $SOURCE_URL | cut -d/ -f3)
 DESTINATION_SERVER=$(echo $DESTINATION_URL | cut -d/ -f3)
+
+if [ -z $FAST ]; then
+	echo "Please set FAST=0 or FAST=1 to select the duplication mode."
+	exit 1
+fi
 
 echo
 echo "Duplicating $SOURCE_URL into $DESTINATION_URL ..."
