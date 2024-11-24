@@ -69,6 +69,28 @@ const websites = {
             console.error('Error getting website info:', error);
             res.status(500).json({ error: 'Failed to get website information' });
         }
+    },
+
+    async getWebsiteLogs(req, res) {
+        try {
+            const siteName = req.params.siteName;
+            const lines = parseInt(req.query.lines) || 100;
+            const userClientId = req.user.clientId;
+            const isAdmin = req.user.isAdmin;
+
+            // Verify access rights
+            if (!isAdmin && !siteName.startsWith(`wp.${userClientId}.`)) {
+                return res.status(403).json({ 
+                    error: 'Access denied: You can only view your own websites'
+                });
+            }
+
+            const logs = await commands.getWordPressLogs(siteName, lines);
+            res.json({ logs });
+        } catch (error) {
+            console.error('Error getting website logs:', error);
+            res.status(500).json({ error: 'Failed to get website logs' });
+        }
     }
 };
 

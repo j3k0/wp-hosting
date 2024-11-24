@@ -63,6 +63,7 @@ window.router
     .on('/websites/:customerId', Handlers.websites)
     .on('/websites/:customerId/info/:siteName', Handlers.websiteInfo)
     .on('/users', Handlers.users)
+    .on('/websites/:customerId/logs/:siteName', Handlers.websiteLogs)
     .notFound(() => window.router.navigate('/login'));
 
 // Global event handlers
@@ -131,4 +132,5 @@ document.addEventListener('DOMContentLoaded', initializeApp);
 // Handle browser back/forward buttons
 window.addEventListener('popstate', () => {
     window.router.resolve();
-}); 
+});
+  

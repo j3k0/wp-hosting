@@ -10,152 +10,211 @@ function formatBytes(bytes) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
+// Add utility functions at the top
+const showError = (error, context) => {
+    console.error(`${context}:`, error);
+    alert(`${context}: ${error.message}`);
+};
+
+const handleAPIRequest = async (apiCall, errorContext) => {
+    try {
+        return await apiCall();
+    } catch (error) {
+        showError(error, errorContext);
+        throw error;
+    }
+};
+
 export const Handlers = {
     async login() {
         render(Templates.login);
         
         document.getElementById('login').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-
-            try {
-                const data = await API.post('login', { username, password });
+            const formData = new FormData(e.target);
+            
+            await handleAPIRequest(async () => {
+                const data = await API.post('login', {
+                    username: formData.get('username'),
+                    password: formData.get('password')
+                });
                 window.userData = data;
                 window.router.navigate(data.isAdmin ? '/customers' : `/websites/${data.clientId}`);
-            } catch (error) {
-                console.error('Login error:', error);
-                alert('Login failed: ' + error.message);
-            }
+            }, 'Login failed');
         });
     },
 
     async customers() {
-        try {
-            const { customers } = await API.get('customers');
-            render(Templates.customers, { customers });
-        } catch (error) {
-            console.error('Failed to load customers:', error);
-            alert('Failed to load customers: ' + error.message);
-        }
+        const { customers } = await handleAPIRequest(
+            () => API.get('customers'),
+            'Failed to load customers'
+        );
+        render(Templates.customers, { customers });
     },
 
     async websites({ data }) {
-        try {
-            const response = await API.get(`websites/${data.customerId}`);
-            const sites = response.sites.map(site => ({
-                siteName: site.name.split('.').slice(2).join('.'),
-                usage: formatBytes(site.usage)
-            }));
-            render(Templates.websites, { 
-                customerId: data.customerId, 
-                sites,
-                userData: window.userData 
-            });
-        } catch (error) {
-            console.error('Failed to load websites:', error);
-            alert('Failed to load websites: ' + error.message);
-        }
+        const response = await handleAPIRequest(
+            () => API.get(`websites/${data.customerId}`),
+            'Failed to load websites'
+        );
+
+        const sites = response.sites.map(site => ({
+            siteName: site.name.split('.').slice(2).join('.'),
+            usage: formatBytes(site.usage)
+        }));
+
+        render(Templates.websites, { 
+            customerId: data.customerId, 
+            sites,
+            userData: window.userData 
+        });
     },
 
     async websiteInfo({ data }) {
-        try {
-            const fullSiteName = `wp.${data.customerId}.${data.siteName}`;
-            const info = await API.get(`websites/${fullSiteName}/info`);
-            
-            const templateData = {
-                customerId: data.customerId,
-                siteName: data.siteName,
-                userData: window.userData 
-            };
+        const fullSiteName = `wp.${data.customerId}.${data.siteName}`;
+        const info = await handleAPIRequest(
+            () => API.get(`websites/${fullSiteName}/info`),
+            'Failed to load website information'
+        );
+        
+        console.log('Frontend received info:', info);
+        console.log('Info structure check:', {
+            hasUrls: !!info.urls,
+            hasPhpMyAdmin: !!info.phpmyadmin,
+            hasSftp: !!info.sftp,
+            hasDns: !!info.dns,
+            hasRaw: !!info.raw
+        });
+        
+        // If we have structured data, use it; otherwise use raw
+        const templateData = {
+            customerId: data.customerId,
+            siteName: data.siteName,
+            userData: window.userData
+        };
 
-            if (info.raw && !info.urls) {
-                render(Templates.websiteInfo, { 
-                    ...templateData,
-                    raw: info.raw 
-                });
-                return;
-            }
-
-            render(Templates.websiteInfo, {
-                ...templateData,
+        if (info.urls?.length || info.phpmyadmin?.url || info.sftp?.host || info.dns?.length) {
+            // Use structured data
+            Object.assign(templateData, {
                 urls: info.urls,
                 phpmyadmin: info.phpmyadmin,
                 sftp: info.sftp,
-                dns: info.dns.join('\n')
+                dns: info.dns
             });
-        } catch (error) {
-            console.error('Error showing website info:', error);
-            alert('Failed to load website information');
+        } else {
+            // Use raw data
+            templateData.raw = info.raw;
         }
+
+        console.log('Template data being rendered:', templateData);
+        render(Templates.websiteInfo, templateData);
     },
 
     async users() {
-        try {
-            const users = await API.get('users');
-            render(Templates.users, { users });
+        const users = await handleAPIRequest(
+            () => API.get('users'),
+            'Failed to load users'
+        );
+        render(Templates.users, { users });
 
-            // Add user form handler
-            const form = document.getElementById('addUserForm');
-            if (form) {
-                form.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    
-                    const formData = new FormData(form);
-                    const clientId = formData.get('clientId');
-                    const userData = {
-                        username: clientId,
-                        password: formData.get('password'),
-                        clientId: clientId,
-                        isAdmin: false
-                    };
+        // Setup form handlers
+        this.setupUserFormHandlers();
+    },
 
-                    try {
-                        await API.post('users', userData);
-                        // Close modal
-                        const modal = bootstrap.Modal.getInstance(document.getElementById('addUserModal'));
-                        modal.hide();
-                        // Reset form
-                        form.reset();
-                        // Refresh users list
-                        Handlers.users();
-                    } catch (error) {
-                        console.error('Failed to create user:', error);
-                        alert('Failed to create user: ' + error.message);
-                    }
-                });
-            }
+    // Extract user management handlers to separate methods
+    setupUserFormHandlers() {
+        const form = document.getElementById('addUserForm');
+        if (form) {
+            form.addEventListener('submit', this.handleAddUser);
+        }
 
-            // Add password reset handler
-            window.resetPassword = async (username) => {
-                const password = prompt('Enter new password for ' + username);
-                if (password) {
-                    try {
-                        await API.post(`users/${username}/reset-password`, { password });
-                        alert('Password updated successfully');
-                    } catch (error) {
-                        console.error('Failed to reset password:', error);
-                        alert('Failed to reset password: ' + error.message);
-                    }
-                }
-            };
+        // Add global handlers
+        window.resetPassword = this.handleResetPassword;
+        window.deleteUser = this.handleDeleteUser;
+    },
 
-            // Add delete user handler
-            window.deleteUser = async (username) => {
-                if (confirm(`Are you sure you want to delete user "${username}"?`)) {
-                    try {
-                        await API.delete(`users/${username}`);
-                        // Refresh users list
-                        Handlers.users();
-                    } catch (error) {
-                        console.error('Failed to delete user:', error);
-                        alert('Failed to delete user: ' + error.message);
-                    }
-                }
-            };
-        } catch (error) {
-            console.error('Failed to load users:', error);
-            alert('Failed to load users: ' + error.message);
+    async handleAddUser(e) {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const clientId = formData.get('clientId');
+
+        await handleAPIRequest(async () => {
+            await API.post('users', {
+                username: clientId,
+                password: formData.get('password'),
+                clientId: clientId,
+                isAdmin: false
+            });
+
+            // Close modal and reset form
+            const modal = bootstrap.Modal.getInstance(document.getElementById('addUserModal'));
+            modal.hide();
+            e.target.reset();
+            
+            // Refresh users list
+            Handlers.users();
+        }, 'Failed to create user');
+    },
+
+    async handleResetPassword(username) {
+        const password = prompt('Enter new password for ' + username);
+        if (password) {
+            await handleAPIRequest(
+                () => API.post(`users/${username}/reset-password`, { password }),
+                'Failed to reset password'
+            );
+            alert('Password updated successfully');
+        }
+    },
+
+    async handleDeleteUser(username) {
+        if (confirm(`Are you sure you want to delete user "${username}"?`)) {
+            await handleAPIRequest(async () => {
+                await API.delete(`users/${username}`);
+                Handlers.users();
+            }, 'Failed to delete user');
+        }
+    },
+
+    websiteLogs: async function({ data }) {
+        const fullSiteName = `wp.${data.customerId}.${data.siteName}`;
+        const lines = document.getElementById('logLines')?.value || 100;
+        
+        await Handlers.loadLogs(fullSiteName, lines, data);
+    },
+
+    loadLogs: async function(fullSiteName, lines, data) {
+        const { logs } = await handleAPIRequest(
+            () => API.get(`websites/${fullSiteName}/logs?lines=${lines}`),
+            'Failed to load logs'
+        );
+
+        render(Templates.websiteLogs, {
+            customerId: data.customerId,
+            siteName: data.siteName,
+            logs,
+            selectedLines: lines
+        });
+
+        // Re-attach event handlers after render
+        this.setupLogHandlers(fullSiteName, data);
+    },
+
+    setupLogHandlers: function(fullSiteName, data) {
+        const lineSelect = document.getElementById('logLines');
+        const refreshBtn = document.getElementById('refreshLogs');
+
+        if (lineSelect) {
+            lineSelect.addEventListener('change', () => {
+                this.loadLogs(fullSiteName, lineSelect.value, data);
+            });
+        }
+
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => {
+                const currentLines = document.getElementById('logLines')?.value || 100;
+                this.loadLogs(fullSiteName, currentLines, data);
+            });
         }
     }
 }; 

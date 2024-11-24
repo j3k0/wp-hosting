@@ -1,3 +1,7 @@
+Handlebars.registerHelper('eq', function(a, b) {
+    return a === b;
+});
+
 export const Templates = {
     login: Handlebars.compile(`
         <div class="container-tight py-4">
@@ -130,6 +134,12 @@ export const Templates = {
                                     </td>
                                     <td>
                                         <div class="btn-list flex-nowrap">
+                                            <a href="/websites/{{../customerId}}/logs/{{siteName}}" 
+                                               data-navigo
+                                               class="btn btn-icon btn-ghost-secondary" 
+                                               title="View Logs">
+                                                <i class="ti ti-file-text"></i>
+                                            </a>
                                             <button class="btn btn-icon btn-ghost-secondary" title="Backup">
                                                 <i class="ti ti-download"></i>
                                             </button>
@@ -175,6 +185,43 @@ export const Templates = {
                         </div>
                     </div>
                 {{else}}
+                    <!-- Website Actions Card -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <i class="ti ti-tool me-2"></i>
+                                Actions
+                            </h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="btn-list">
+                                <a href="/websites/{{customerId}}/logs/{{siteName}}" 
+                                   data-navigo 
+                                   class="btn btn-outline-primary">
+                                    <i class="ti ti-file-text me-2"></i>
+                                    View Logs
+                                </a>
+                                <button class="btn btn-outline-primary" disabled>
+                                    <i class="ti ti-download me-2"></i>
+                                    Backup
+                                </button>
+                                <button class="btn btn-outline-primary" disabled>
+                                    <i class="ti ti-upload me-2"></i>
+                                    Restore
+                                </button>
+                                <button class="btn btn-outline-warning" disabled>
+                                    <i class="ti ti-refresh me-2"></i>
+                                    Rebuild Cache
+                                </button>
+                                <button class="btn btn-outline-danger" disabled>
+                                    <i class="ti ti-trash me-2"></i>
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Website Information Cards -->
                     <div class="row row-cards">
                         <div class="col-12 col-md-6">
                             <div class="card">
@@ -255,7 +302,8 @@ export const Templates = {
                                     <h3 class="card-title"><i class="ti ti-dns me-2"></i>DNS Configuration</h3>
                                 </div>
                                 <div class="card-body">
-                                    <pre class="bg-light text-dark">{{dns}}</pre>
+                                    <pre class="bg-light text-dark p-3 mb-0">{{#each dns}}{{this}}
+{{/each}}</pre>
                                 </div>
                             </div>
                         </div>
@@ -386,5 +434,51 @@ export const Templates = {
         <main class="container">
             {{{content}}}
         </main>
+    `),
+
+    websiteLogs: Handlebars.compile(`
+        <div class="page-header d-print-none">
+            <div class="container-xl">
+                <div class="row g-2 align-items-center">
+                    <div class="col">
+                        <div class="page-pretitle">
+                            <a href="/websites/{{customerId}}/info/{{siteName}}" data-navigo class="text-muted">
+                                <i class="ti ti-arrow-left"></i> Back to Website Info
+                            </a>
+                        </div>
+                        <h2 class="page-title">
+                            <i class="ti ti-file-text me-2"></i>
+                            Logs for {{siteName}}
+                        </h2>
+                    </div>
+                    <div class="col-auto">
+                        <div class="btn-list">
+                            <button class="btn btn-primary" id="refreshLogs">
+                                <i class="ti ti-refresh me-2"></i>
+                                Refresh
+                            </button>
+                            <select id="logLines" class="form-select">
+                                <option value="50" {{#if (eq selectedLines "50")}}selected{{/if}}>50 lines</option>
+                                <option value="100" {{#if (eq selectedLines "100")}}selected{{/if}}>100 lines</option>
+                                <option value="200" {{#if (eq selectedLines "200")}}selected{{/if}}>200 lines</option>
+                                <option value="500" {{#if (eq selectedLines "500")}}selected{{/if}}>500 lines</option>
+                                <option value="2000" {{#if (eq selectedLines "2000")}}selected{{/if}}>2000 lines</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="page-body">
+            <div class="container-xl">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="logs-container bg-dark text-light p-3" style="font-family: monospace;">
+                            {{{logs}}}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     `)
 }; 

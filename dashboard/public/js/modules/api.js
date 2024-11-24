@@ -1,7 +1,15 @@
 // Handle all API calls
 export const API = {
-    async get(endpoint) {
-        const response = await fetch(`/api/${endpoint}`);
+    // Common fetch handler to reduce duplication
+    async fetchAPI(endpoint, options = {}) {
+        const response = await fetch(`/api/${endpoint}`, {
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+
         if (!response.ok) {
             if (response.status === 401 || response.status === 403) {
                 throw new Error('auth_required');
@@ -11,25 +19,20 @@ export const API = {
         return response.json();
     },
 
+    async get(endpoint) {
+        return this.fetchAPI(endpoint);
+    },
+
     async post(endpoint, data) {
-        const response = await fetch(`/api/${endpoint}`, {
+        return this.fetchAPI(endpoint, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
-        if (!response.ok) {
-            throw new Error(`API Error: ${response.statusText}`);
-        }
-        return response.json();
     },
 
     async delete(endpoint) {
-        const response = await fetch(`/api/${endpoint}`, {
+        return this.fetchAPI(endpoint, {
             method: 'DELETE'
         });
-        if (!response.ok) {
-            throw new Error(`API Error: ${response.statusText}`);
-        }
-        return response.json();
     }
 }; 

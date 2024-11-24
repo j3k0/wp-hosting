@@ -18,10 +18,23 @@ app.use(express.json());
 app.use(express.static('public'));
 app.use(cookieParser());
 
+// Add error handling middleware
+const errorHandler = (err, req, res, next) => {
+    console.error('API Error:', err);
+    res.status(err.status || 500).json({
+        error: err.message || 'Internal server error'
+    });
+};
+
+// Add route handler wrapper
+const asyncHandler = (fn) => (req, res, next) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+};
+
 // Auth routes
-app.post('/api/login', auth.login);
-app.post('/api/logout', auth.logout);
-app.post('/api/users', auth.authenticateAdmin, auth.createUser);
+app.post('/api/login', asyncHandler(auth.login));
+app.post('/api/logout', asyncHandler(auth.logout));
+app.post('/api/users', auth.authenticateAdmin, asyncHandler(auth.createUser));
 
 // Website routes
 app.get('/api/websites', auth.authenticate, websites.listWebsites);
@@ -35,6 +48,7 @@ app.get('/api/user', auth.authenticate, (req, res) => {
     });
 });
 app.get('/api/websites/:siteName/info', auth.authenticate, websites.getWebsiteInfo);
+app.get('/api/websites/:siteName/logs', auth.authenticate, websites.getWebsiteLogs);
 
 // User routes
 app.get('/api/users', auth.authenticateAdmin, auth.listUsers);
@@ -46,6 +60,9 @@ app.get('*', (req, res) => {
     // Send index.html for all routes to support client-side routing
     res.sendFile(path.join(__dirname, '../public/index.html'));
 });
+
+// Add error handler last
+app.use(errorHandler);
 
 // HTTPS configuration
 const httpsOptions = {

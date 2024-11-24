@@ -2,6 +2,7 @@ const { exec } = require('child_process');
 const util = require('util');
 const path = require('path');
 const execAsync = util.promisify(exec);
+const Convert = require('ansi-to-html');
 
 // Path to the wp-hosting scripts directory
 const SCRIPTS_DIR = path.join(__dirname, '../../');
@@ -15,8 +16,17 @@ class Commands {
             quota: path.join(SCRIPTS_DIR, 'quota.sh'),
             backup: path.join(SCRIPTS_DIR, 'backup.sh'),
             restore: path.join(SCRIPTS_DIR, 'restore.sh'),
-            // ... autres scripts à ajouter selon les besoins
+            logs: path.join(SCRIPTS_DIR, 'logs_wordpress.sh'),
         };
+
+        // Initialize ANSI converter with options
+        this.converter = new Convert({
+            fg: '#000',
+            bg: '#FFF',
+            newline: true,
+            escapeXML: true,
+            stream: false
+        });
     }
 
     /**
@@ -115,7 +125,7 @@ class Commands {
      * @returns {Object} Parsed information and raw output
      */
     parseInfoOutput(output) {
-        console.log('Starting to parse info output');
+        console.log('Starting to parse info output:', output);
         const info = {
             urls: [],
             phpmyadmin: {
@@ -130,7 +140,7 @@ class Commands {
                 password: ''
             },
             dns: [],
-            raw: output  // Garder toujours la sortie brute
+            raw: output
         };
 
         let currentSection = null;
@@ -138,7 +148,6 @@ class Commands {
         console.log('Number of lines to parse:', lines.length);
 
         for (const line of lines) {
-            console.log('Processing line:', line);
             if (line.includes('** Website URL **')) {
                 console.log('Found Website URL section');
                 currentSection = 'urls';
@@ -157,7 +166,7 @@ class Commands {
             }
             else if (line.trim().startsWith('- http')) {
                 const url = line.trim().replace('- ', '');
-                console.log('Found URL:', url);
+                console.log('Found URL:', url, 'in section:', currentSection);
                 if (currentSection === 'urls') {
                     info.urls.push(url);
                 } else if (currentSection === 'phpmyadmin') {
@@ -166,29 +175,42 @@ class Commands {
             }
             else if (line.includes('phpMyAdmin Username:')) {
                 info.phpmyadmin.username = line.split(':')[1].trim();
+                console.log('Found phpMyAdmin username:', info.phpmyadmin.username);
             }
             else if (line.includes('phpMyAdmin Password:')) {
                 info.phpmyadmin.password = line.split(':')[1].trim();
+                console.log('Found phpMyAdmin password');
             }
             else if (line.includes('SFTP Host:')) {
                 info.sftp.host = line.split(':')[1].trim();
+                console.log('Found SFTP host:', info.sftp.host);
             }
             else if (line.includes('SFTP Port:')) {
                 info.sftp.port = line.split(':')[1].trim();
+                console.log('Found SFTP port:', info.sftp.port);
             }
             else if (line.includes('SFTP Username:')) {
                 info.sftp.username = line.split(':')[1].trim();
+                console.log('Found SFTP username:', info.sftp.username);
             }
             else if (line.includes('SFTP Password:')) {
                 info.sftp.password = line.split(':')[1].trim();
+                console.log('Found SFTP password');
             }
             else if (currentSection === 'dns' && line.trim() && !line.startsWith('```')) {
                 info.dns.push(line.trim());
+                console.log('Added DNS line:', line.trim());
             }
         }
 
-        console.log('Final parsed info:', info);
-        // Si le parsing n'a rien trouvé d'utile, retourner seulement le raw
+        console.log('Final parsed info structure:', {
+            hasUrls: info.urls.length > 0,
+            hasPhpMyAdmin: !!info.phpmyadmin.url,
+            hasSftp: !!info.sftp.host,
+            hasDns: info.dns.length > 0
+        });
+
+        // Only return raw if no structured data was parsed
         if (info.urls.length === 0 && 
             !info.phpmyadmin.url && 
             !info.sftp.host && 
@@ -198,6 +220,22 @@ class Commands {
         }
 
         return info;
+    }
+
+    /**
+     * Get WordPress logs for a site
+     * @param {string} siteName - Full website name
+     * @param {number} lines - Number of lines to tail
+     * @returns {Promise<string>} Formatted log output
+     */
+    async getWordPressLogs(siteName, lines = 100) {
+        try {
+            const { stdout } = await this.executeScript('logs', [siteName, `--tail=${lines}`]);
+            return this.converter.toHtml(stdout);
+        } catch (error) {
+            console.error('Error getting logs:', error);
+            throw new Error('Failed to get WordPress logs');
+        }
     }
 }
 
