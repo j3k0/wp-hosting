@@ -2,6 +2,17 @@ Handlebars.registerHelper('eq', function(a, b) {
     return a === b;
 });
 
+Handlebars.registerHelper('serviceStatus', function(service, status) {
+    return {
+        name: service,
+        status: status,
+        isUp: status === 'Up',
+        isDisabled: status === 'Disabled',
+        statusColor: status === 'Up' ? 'green' : 
+                    status === 'Disabled' ? 'black' : 'red'
+    };
+});
+
 export const Templates = {
     login: Handlebars.compile(`
         <div class="container-tight py-4">
@@ -185,6 +196,35 @@ export const Templates = {
                         </div>
                     </div>
                 {{else}}
+                    <!-- Service Status Card -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <i class="ti ti-activity me-2"></i>
+                                Service Status
+                            </h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                {{#with (serviceStatus 'Webserver' services.webserver)}}
+                                    {{> serviceStatusCard}}
+                                {{/with}}
+                                {{#with (serviceStatus 'Database' services.database)}}
+                                    {{> serviceStatusCard}}
+                                {{/with}}
+                                {{#with (serviceStatus 'phpMyAdmin' services.phpmyadmin)}}
+                                    {{> serviceStatusCard}}
+                                {{/with}}
+                                {{#with (serviceStatus 'SFTP' services.sftp)}}
+                                    {{> serviceStatusCard}}
+                                {{/with}}
+                                {{#with (serviceStatus 'Backup' services.backup)}}
+                                    {{> serviceStatusCard}}
+                                {{/with}}
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Website Actions Card -->
                     <div class="card mb-3">
                         <div class="card-header">
@@ -512,6 +552,34 @@ export const Templates = {
                                         {{confirmText}}
                                     </button>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `),
+
+    serviceStatusCard: Handlebars.registerPartial('serviceStatusCard', `
+        <div class="col-sm-6 col-lg">
+            <div class="card card-sm">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-auto">
+                            <span class="status-indicator status-{{statusColor}} status-indicator-animated">
+                                <span class="status-indicator-circle"></span>
+                                <span class="status-indicator-circle"></span>
+                                <span class="status-indicator-circle"></span>
+                            </span>
+                        </div>
+                        <div class="col">
+                            <div class="font-weight-medium">
+                                {{name}}
+                                {{#unless isUp}}
+                                    <div class="text-muted small">
+                                        ({{status}})
+                                    </div>
+                                {{/unless}}
                             </div>
                         </div>
                     </div>

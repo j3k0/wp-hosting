@@ -87,19 +87,13 @@ export const Handlers = {
         );
         
         console.log('Frontend received info:', info);
-        console.log('Info structure check:', {
-            hasUrls: !!info.urls,
-            hasPhpMyAdmin: !!info.phpmyadmin,
-            hasSftp: !!info.sftp,
-            hasDns: !!info.dns,
-            hasRaw: !!info.raw
-        });
         
         // If we have structured data, use it; otherwise use raw
         const templateData = {
             customerId: data.customerId,
             siteName: data.siteName,
-            userData: window.userData
+            userData: window.userData,
+            services: info.services
         };
 
         if (info.urls?.length || info.phpmyadmin?.url || info.sftp?.host || info.dns?.length) {

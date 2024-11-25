@@ -108,11 +108,16 @@ class Commands {
     async getWebsiteInfo(siteName) {
         console.log(`Getting info for website: ${siteName}`);
         try {
-            const { stdout } = await this.executeScript('info', [siteName]);
-            console.log('Raw info output:', stdout);
-            const parsedInfo = this.parseInfoOutput(stdout);
-            console.log('Parsed info:', parsedInfo);
-            return parsedInfo;
+            const [infoOutput, statuses] = await Promise.all([
+                this.executeScript('info', [siteName]),
+                this.getServiceStatuses(siteName)
+            ]);
+            
+            const parsedInfo = this.parseInfoOutput(infoOutput.stdout);
+            return {
+                ...parsedInfo,
+                services: statuses
+            };
         } catch (error) {
             console.error('Error getting website info:', error);
             throw new Error('Failed to get website information');
@@ -246,6 +251,65 @@ class Commands {
         } catch (error) {
             console.error('Error restarting website:', error);
             throw new Error('Failed to restart website');
+        }
+    }
+
+    async getServiceStatuses(siteName) {
+        try {
+            const { stdout } = await this.executeScript('dockerCompose', [siteName, 'ps', '-a']);
+            
+            // Initialize default statuses
+            const statuses = {
+                backup: 'Disabled',
+                database: 'Disabled',
+                phpmyadmin: 'Disabled',
+                sftp: 'Disabled',
+                webserver: 'Disabled'
+            };
+
+            // Skip header lines
+            const lines = stdout.split('\n').slice(2);
+            
+            for (const line of lines) {
+                if (!line.trim()) continue;
+                
+                // Split by whitespace and get relevant columns
+                const parts = line.trim().split(/\s\s+/);
+                const containerName = parts[0];
+                const state = parts[2]; // State is usually the second-to-last column
+
+                // Extract service name from container name
+                const serviceName = containerName.split('_')[1];
+                
+                // Map service names to our standard names
+                const serviceMap = {
+                    backup: 'backup',
+                    db: 'database',
+                    phpmyadmin: 'phpmyadmin',
+                    sftp: 'sftp',
+                    wordpress: 'webserver'
+                };
+
+                const standardName = serviceMap[serviceName];
+                if (standardName) {
+                    // Map Docker states to our standard states
+                    let status = 'Unknown';
+                    if (state.toLowerCase() === 'up') {
+                        status = 'Up';
+                    } else if (state.toLowerCase().includes('exited')) {
+                        status = 'Down';
+                    } else if (state) {
+                        status = state;
+                    }
+                    
+                    statuses[standardName] = status;
+                }
+            }
+
+            return statuses;
+        } catch (error) {
+            console.error('Error getting service statuses:', error);
+            throw new Error('Failed to get service statuses');
         }
     }
 }
