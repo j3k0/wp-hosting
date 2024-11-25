@@ -238,7 +238,17 @@ export const Handlers = {
                 
                 await action();
                 
-                // Start periodic status refresh
+                // For enable/disable actions, reload the page
+                if (buttonId === 'enableWebsite' || buttonId === 'disableWebsite') {
+                    Notifications.success(`Website ${buttonId.replace('Website', '').toLowerCase()}d successfully`);
+                    // Short delay to show the success notification
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 500);
+                    return;
+                }
+                
+                // For other actions, continue with service status refresh
                 let retryCount = 0;
                 const maxRetries = 10;
                 const refreshInterval = setInterval(async () => {
@@ -246,7 +256,6 @@ export const Handlers = {
                         const services = await refreshServices();
                         retryCount++;
                         
-                        // Stop refreshing if all services are in a stable state or max retries reached
                         const allStable = Object.values(services).every(status => 
                             status === 'Up' || status === 'Down' || status === 'Disabled'
                         );
@@ -264,9 +273,8 @@ export const Handlers = {
                 Notifications.success(`Website ${buttonId.replace('Website', '').toLowerCase()}ed successfully`);
             } catch (error) {
                 showError(error, `Failed to ${buttonId.replace('Website', '')} website`);
-            } finally {
                 button.innerHTML = originalHtml;
-                // Final refresh and button state update will happen in the interval
+                setActionButtonsState(false);
             }
         };
 
@@ -283,7 +291,8 @@ export const Handlers = {
             customerId: data.customerId,
             siteName: data.siteName,
             userData: window.userData,
-            services: info.services
+            services: info.services,
+            state: info.state
         };
 
         if (info.urls?.length || info.phpmyadmin?.url || info.sftp?.host || info.dns?.length) {
@@ -378,6 +387,50 @@ export const Handlers = {
                         () => API.stopWebsite(fullSiteName),
                         'stopWebsite',
                         'Stopping...'
+                    );
+                }
+            });
+        }
+
+        // Add enable/disable button handlers
+        const enableBtn = document.getElementById('enableWebsite');
+        const disableBtn = document.getElementById('disableWebsite');
+
+        if (enableBtn) {
+            enableBtn.addEventListener('click', async () => {
+                const confirmed = await showConfirmation({
+                    type: 'success',
+                    icon: 'power',
+                    title: 'Enable Website?',
+                    message: 'This will enable all services for this website.',
+                    confirmText: 'Enable'
+                });
+
+                if (confirmed) {
+                    await handleServiceAction(
+                        () => API.enableWebsite(fullSiteName),
+                        'enableWebsite',
+                        'Enabling...'
+                    );
+                }
+            });
+        }
+
+        if (disableBtn) {
+            disableBtn.addEventListener('click', async () => {
+                const confirmed = await showConfirmation({
+                    type: 'danger',
+                    icon: 'power',
+                    title: 'Disable Website?',
+                    message: 'This will disable all services for this website. The website will be unavailable.',
+                    confirmText: 'Disable'
+                });
+
+                if (confirmed) {
+                    await handleServiceAction(
+                        () => API.disableWebsite(fullSiteName),
+                        'disableWebsite',
+                        'Disabling...'
                     );
                 }
             });

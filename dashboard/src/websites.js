@@ -198,6 +198,46 @@ const websites = {
             console.error('Error starting website:', error);
             res.status(500).json({ error: 'Failed to start website' });
         }
+    },
+
+    async enableWebsite(req, res) {
+        try {
+            const siteName = req.params.siteName;
+            const userClientId = req.user.clientId;
+            const isAdmin = req.user.isAdmin;
+
+            if (!isAdmin && !siteName.startsWith(`wp.${userClientId}.`)) {
+                return res.status(403).json({ 
+                    error: 'Access denied: You can only enable your own websites'
+                });
+            }
+
+            await commands.enableWebsite(siteName);
+            res.json({ message: 'Website enabled successfully' });
+        } catch (error) {
+            console.error('Error enabling website:', error);
+            res.status(500).json({ error: 'Failed to enable website' });
+        }
+    },
+
+    async disableWebsite(req, res) {
+        try {
+            const siteName = req.params.siteName;
+            const userClientId = req.user.clientId;
+            const isAdmin = req.user.isAdmin;
+
+            if (!isAdmin && !siteName.startsWith(`wp.${userClientId}.`)) {
+                return res.status(403).json({ 
+                    error: 'Access denied: You can only disable your own websites'
+                });
+            }
+
+            await commands.disableWebsite(siteName);
+            res.json({ message: 'Website disabled successfully' });
+        } catch (error) {
+            console.error('Error disabling website:', error);
+            res.status(500).json({ error: 'Failed to disable website' });
+        }
     }
 };
 

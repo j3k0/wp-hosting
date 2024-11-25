@@ -5,6 +5,13 @@ cd "$(dirname "$0")"
 . _scripts/base.sh
 . config/base
 
+# Get website state
+if grep STATE=DISABLED $1/config > /dev/null; then
+    SITE_STATE="disabled"
+else
+    SITE_STATE="enabled"
+fi
+
 # Generate website URLs
 WWW_URLS="- https://$DOMAIN
 - https://${BACKEND_WWW_DOMAIN}"
@@ -35,6 +42,9 @@ fi
 cat << EOF
 
 # $DOMAIN
+
+** State **
+$SITE_STATE
 
 ** Website URL **
 

@@ -18,6 +18,7 @@ class Commands {
             restore: path.join(SCRIPTS_DIR, 'restore.sh'),
             logs: path.join(SCRIPTS_DIR, 'logs_wordpress.sh'),
             dockerCompose: path.join(SCRIPTS_DIR, 'docker-compose.sh'),
+            disable: path.join(SCRIPTS_DIR, 'disable.sh'),
         };
 
         // Initialize ANSI converter with options
@@ -141,6 +142,7 @@ class Commands {
                 password: ''
             },
             dns: [],
+            state: 'enabled',
             raw: output
         };
 
@@ -149,8 +151,10 @@ class Commands {
         console.log('Number of lines to parse:', lines.length);
 
         for (const line of lines) {
-            if (line.includes('** Website URL **')) {
-                console.log('Found Website URL section');
+            if (line.includes('** State **')) {
+                currentSection = 'state';
+            }
+            else if (line.includes('** Website URL **')) {
                 currentSection = 'urls';
             }
             else if (line.includes('** phpMyAdmin **')) {
@@ -201,6 +205,12 @@ class Commands {
             else if (currentSection === 'dns' && line.trim() && !line.startsWith('```')) {
                 info.dns.push(line.trim());
                 console.log('Added DNS line:', line.trim());
+            }
+            else if (currentSection === 'state') {
+                const state = line.trim();
+                if (state === 'disabled' || state === 'enabled') {
+                    info.state = state;
+                }
             }
         }
 
@@ -333,6 +343,26 @@ class Commands {
         } catch (error) {
             console.error('Error starting website:', error);
             throw new Error('Failed to start website');
+        }
+    }
+
+    async enableWebsite(siteName) {
+        try {
+            const { stdout } = await this.executeScript('disable', [siteName, '--enable']);
+            return stdout;
+        } catch (error) {
+            console.error('Error enabling website:', error);
+            throw new Error('Failed to enable website');
+        }
+    }
+
+    async disableWebsite(siteName) {
+        try {
+            const { stdout } = await this.executeScript('disable', [siteName]);
+            return stdout;
+        } catch (error) {
+            console.error('Error disabling website:', error);
+            throw new Error('Failed to disable website');
         }
     }
 }

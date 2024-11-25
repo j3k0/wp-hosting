@@ -62,5 +62,13 @@ export const API = {
 
     async startWebsite(siteName) {
         return this.post(`websites/${siteName}/start`);
+    },
+
+    async enableWebsite(siteName) {
+        return this.post(`websites/${siteName}/enable`);
+    },
+
+    async disableWebsite(siteName) {
+        return this.post(`websites/${siteName}/disable`);
     }
 }; 

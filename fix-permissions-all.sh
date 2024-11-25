@@ -1,2 +1,3 @@
 #!/bin/bash
-for i in */nginx-site; do ./fix-permissions.sh `dirname $i`; done
+cd "$(dirname "$0")"
+for i in $(./ls.sh --enabled); do ./fix-permissions.sh "$i"; done

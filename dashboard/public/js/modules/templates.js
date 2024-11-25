@@ -219,7 +219,7 @@ export const Templates = {
                                                title="View Logs">
                                                 <i class="ti ti-file-text"></i>
                                             </a>
-                                            <button class="btn btn-icon btn-ghost-warning" 
+                                            <button class="btn btn-icon btn-ghost-secondary" 
                                                     data-action="restart-website"
                                                     data-site-name="{{siteName}}"
                                                     title="Restart Website">
@@ -308,31 +308,35 @@ export const Templates = {
                         </div>
                         <div class="card-body">
                             <div class="btn-list">
-                                <a href="/websites/{{customerId}}/logs/{{siteName}}" 
-                                   data-navigo 
-                                   class="btn btn-outline-primary {{#if (allServicesDisabled services)}}disabled{{/if}}"
-                                   {{#if (allServicesDisabled services)}}aria-disabled="true" onclick="return false;"{{/if}}>
-                                    <i class="ti ti-file-text me-2"></i>
-                                    View Logs
-                                </a>
-                                <button class="btn btn-outline-warning" 
-                                        id="restartWebsite"
-                                        {{#if (allServicesDisabled services)}}disabled{{/if}}>
-                                    <i class="ti ti-refresh me-2"></i>
-                                    Restart
-                                </button>
-                                <button class="btn btn-outline-success" 
-                                        id="startWebsite"
-                                        {{#if (or (allServicesUp services) (allServicesDisabled services))}}disabled{{/if}}>
-                                    <i class="ti ti-player-play me-2"></i>
-                                    Start
-                                </button>
-                                <button class="btn btn-outline-danger" 
-                                        id="stopWebsite"
-                                        {{#if (or (allServicesDown services) (allServicesDisabled services))}}disabled{{/if}}>
-                                    <i class="ti ti-player-stop me-2"></i>
-                                    Stop
-                                </button>
+                                {{#if (eq state "enabled")}}
+                                    <a href="/websites/{{customerId}}/logs/{{siteName}}" 
+                                       data-navigo 
+                                       class="btn btn-outline-primary">
+                                        <i class="ti ti-file-text me-2"></i>
+                                        View Logs
+                                    </a>
+                                    <button class="btn btn-outline-secondary" id="restartWebsite">
+                                        <i class="ti ti-refresh me-2"></i>
+                                        Restart
+                                    </button>
+                                    <button class="btn btn-outline-success" id="startWebsite">
+                                        <i class="ti ti-player-play me-2"></i>
+                                        Start
+                                    </button>
+                                    <button class="btn btn-outline-warning" id="stopWebsite">
+                                        <i class="ti ti-player-pause me-2"></i>
+                                        Pause
+                                    </button>
+                                    <button class="btn btn-outline-danger" id="disableWebsite">
+                                        <i class="ti ti-power me-2"></i>
+                                        Shutdown
+                                    </button>
+                                {{else}}
+                                    <button class="btn btn-outline-success" id="enableWebsite">
+                                        <i class="ti ti-power me-2"></i>
+                                        Enable Website
+                                    </button>
+                                {{/if}}
                             </div>
                         </div>
                     </div>
