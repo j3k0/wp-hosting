@@ -274,7 +274,10 @@ class Commands {
 
     async getServiceStatuses(siteName) {
         try {
-            const containers = await this.getDockerContainers();
+            const [containers, isBackupRunning] = await Promise.all([
+                this.getDockerContainers(),
+                this.isBackupInProgress(siteName.replace(/\./g, ''))
+            ]);
             
             // Initialize default statuses
             const statuses = {
@@ -310,7 +313,11 @@ class Commands {
                 if (serviceName) {
                     // Map Docker states to our standard states
                     if (container.State === 'running') {
-                        statuses[serviceName] = 'Up';
+                        if (serviceName === 'backup' && isBackupRunning) {
+                            statuses[serviceName] = 'In Progress...';
+                        } else {
+                            statuses[serviceName] = 'Up';
+                        }
                     } else if (container.State === 'exited') {
                         statuses[serviceName] = 'Down';
                     } else {
@@ -363,6 +370,30 @@ class Commands {
         } catch (error) {
             console.error('Error disabling website:', error);
             throw new Error('Failed to disable website');
+        }
+    }
+
+    async isBackupInProgress(siteName) {
+        try {
+            const { stdout } = await execAsync(`docker exec ${siteName}_backup_1 ps aux`);
+            // If we see backup, tar, or mysqldump processes, a backup is in progress
+            return stdout.includes('/usr/bin/backup') || 
+                   stdout.includes('tar --exclude') ||
+                   stdout.includes('mysqldump');
+        } catch (error) {
+            console.error('Error checking backup status:', error);
+            return false;
+        }
+    }
+
+    async startBackup(siteName) {
+        try {
+            // Execute backup script from wp-hosting root
+            const { stdout } = await this.executeScript('backup', [siteName]);
+            return stdout;
+        } catch (error) {
+            console.error('Error starting backup:', error);
+            throw new Error('Failed to start backup: ' + error.message);
         }
     }
 }

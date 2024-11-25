@@ -315,6 +315,10 @@ export const Templates = {
                                         <i class="ti ti-file-text me-2"></i>
                                         View Logs
                                     </a>
+                                    <button class="btn btn-outline-info" id="startBackup">
+                                        <i class="ti ti-archive me-2"></i>
+                                        Backup
+                                    </button>
                                     <button class="btn btn-outline-secondary" id="restartWebsite">
                                         <i class="ti ti-refresh me-2"></i>
                                         Restart

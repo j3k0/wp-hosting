@@ -70,5 +70,9 @@ export const API = {
 
     async disableWebsite(siteName) {
         return this.post(`websites/${siteName}/disable`);
+    },
+
+    async startBackup(siteName) {
+        return this.post(`websites/${siteName}/backup`);
     }
 }; 

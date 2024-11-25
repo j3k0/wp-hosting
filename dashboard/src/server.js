@@ -54,6 +54,7 @@ app.post('/api/websites/:siteName/stop', auth.authenticate, websites.stopWebsite
 app.post('/api/websites/:siteName/start', auth.authenticate, websites.startWebsite);
 app.post('/api/websites/:siteName/enable', auth.authenticate, websites.enableWebsite);
 app.post('/api/websites/:siteName/disable', auth.authenticate, websites.disableWebsite);
+app.post('/api/websites/:siteName/backup', auth.authenticate, websites.startBackup);
 
 // User routes
 app.get('/api/users', auth.authenticateAdmin, auth.listUsers);

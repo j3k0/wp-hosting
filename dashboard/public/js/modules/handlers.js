@@ -435,6 +435,76 @@ export const Handlers = {
                 }
             });
         }
+
+        // Add backup button handler
+        const backupBtn = document.getElementById('startBackup');
+        if (backupBtn) {
+            backupBtn.addEventListener('click', async () => {
+                const confirmed = await showConfirmation({
+                    type: 'info',
+                    icon: 'archive',
+                    title: 'Start Backup?',
+                    message: 'This will create a new backup of the website.',
+                    confirmText: 'Start Backup'
+                });
+
+                if (confirmed) {
+                    try {
+                        backupBtn.disabled = true;
+                        backupBtn.innerHTML = '<i class="ti ti-loader ti-spin me-2"></i>Starting backup...';
+                        
+                        await API.startBackup(fullSiteName);
+                        Notifications.success('Backup started successfully');
+
+                        // Start polling for backup status
+                        const checkBackupStatus = async () => {
+                            try {
+                                const info = await API.get(`websites/${fullSiteName}/info`);
+                                const backupStatus = info.services?.backup;
+                                
+                                // Update services container
+                                const servicesContainer = document.getElementById('servicesContainer');
+                                if (servicesContainer) {
+                                    const servicesHtml = Object.entries({
+                                        'Webserver': info.services.webserver,
+                                        'Database': info.services.database,
+                                        'phpMyAdmin': info.services.phpmyadmin,
+                                        'SFTP': info.services.sftp,
+                                        'Backup': info.services.backup
+                                    }).map(([name, status]) => {
+                                        return Templates.serviceStatusCard(getServiceStatusData(name, status));
+                                    }).join('');
+                                    
+                                    servicesContainer.innerHTML = servicesHtml;
+                                }
+
+                                // Continue polling if backup is in progress
+                                if (backupStatus === 'In Progress...') {
+                                    setTimeout(checkBackupStatus, 5000); // Check every 5 seconds
+                                } else {
+                                    backupBtn.disabled = false;
+                                    backupBtn.innerHTML = '<i class="ti ti-archive me-2"></i>Backup';
+                                    if (backupStatus === 'Up') {
+                                        Notifications.success('Backup completed successfully');
+                                    }
+                                }
+                            } catch (error) {
+                                console.error('Error checking backup status:', error);
+                                backupBtn.disabled = false;
+                                backupBtn.innerHTML = '<i class="ti ti-archive me-2"></i>Backup';
+                            }
+                        };
+
+                        // Start the polling
+                        setTimeout(checkBackupStatus, 2000);
+                    } catch (error) {
+                        showError(error, 'Failed to start backup');
+                        backupBtn.disabled = false;
+                        backupBtn.innerHTML = '<i class="ti ti-archive me-2"></i>Backup';
+                    }
+                }
+            });
+        }
     },
 
     async users() {

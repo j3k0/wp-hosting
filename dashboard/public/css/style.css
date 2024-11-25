@@ -178,3 +178,12 @@ td, th {
     text-align: right;
     padding-right: 1rem;
 }
+
+/* Add this with your other status indicator styles */
+.status-orange {
+    --status-color: #fd7e14;
+}
+
+.status-indicator.status-orange .status-indicator-circle {
+    background: var(--status-color);
+}
