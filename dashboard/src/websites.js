@@ -7,6 +7,7 @@ const websites = {
             const requestedClientId = req.params.customerId;
             const userClientId = req.user.clientId;
             const isAdmin = req.user.isAdmin;
+            const filter = req.query.filter || 'enabled';
 
             // Si l'utilisateur n'est pas admin, il ne peut voir que ses propres sites
             if (!isAdmin && requestedClientId !== userClientId) {
@@ -22,8 +23,19 @@ const websites = {
                 return res.status(403).json({ error: 'Access denied' });
             }
 
+            // Get sites based on filter
+            let args = [];
+            if (filter === 'enabled') {
+                args.push('--enabled');
+            } else if (filter === 'disabled') {
+                args.push('--disabled');
+            }
+            if (clientIdToUse) {
+                args.push(`wp.${clientIdToUse}`);
+            }
+
             // Get all sites
-            const sites = await commands.listWebsites(clientIdToUse);
+            const sites = await commands.listWebsites(args);
             
             // Get all containers status at once
             const containers = await commands.getDockerContainers();

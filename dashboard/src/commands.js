@@ -62,16 +62,11 @@ class Commands {
 
     /**
      * List websites
-     * @param {string} [clientId] - Optional client ID to filter websites
+     * @param {string[]} args - Arguments to pass to ls.sh
      * @returns {Promise<string[]>} Array of website names
      */
-    async listWebsites(clientId = null) {
+    async listWebsites(args = []) {
         try {
-            const args = ['--enabled'];
-            if (clientId) {
-                args.push(`wp.${clientId}`);
-            }
-
             const { stdout } = await this.executeScript('ls', args);
             return stdout.trim().split('\n').filter(Boolean);
         } catch (error) {

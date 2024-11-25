@@ -106,26 +106,171 @@ export const Handlers = {
     },
 
     async websites({ data }) {
-        const response = await handleAPIRequest(
-            () => API.get(`websites/${data.customerId}`),
-            'Failed to load websites'
-        );
+        const loadWebsites = async (filter = 'all') => {
+            const response = await handleAPIRequest(
+                () => API.get(`websites/${data.customerId}?filter=${filter}`),
+                'Failed to load websites'
+            );
 
-        const sites = response.sites.map(site => ({
-            siteName: site.name.split('.').slice(2).join('.'),
-            usage: formatBytes(site.usage),
-            services: site.services
-        }));
+            const sites = response.sites.map(site => ({
+                siteName: site.name.split('.').slice(2).join('.'),
+                usage: formatBytes(site.usage),
+                services: site.services
+            }));
 
-        render(Templates.websites, { 
-            customerId: data.customerId, 
-            sites,
-            userData: window.userData 
-        });
+            render(Templates.websites, { 
+                customerId: data.customerId, 
+                sites,
+                userData: window.userData,
+                filter
+            });
+
+            // Add event listeners
+            const filterSelect = document.getElementById('websiteFilter');
+            if (filterSelect) {
+                filterSelect.addEventListener('change', (e) => {
+                    loadWebsites(e.target.value);
+                });
+            }
+
+            // Add restart button handlers
+            document.querySelectorAll('[data-action="restart-website"]').forEach(button => {
+                button.addEventListener('click', async () => {
+                    const siteName = button.dataset.siteName;
+                    try {
+                        const confirmed = await showConfirmation({
+                            type: 'warning',
+                            icon: 'refresh',
+                            title: 'Restart Website?',
+                            message: 'The website will be temporarily unavailable during the restart.',
+                            confirmText: 'Restart'
+                        });
+
+                        if (confirmed) {
+                            button.disabled = true;
+                            button.innerHTML = '<i class="ti ti-loader ti-spin"></i>';
+                            
+                            const fullSiteName = `wp.${data.customerId}.${siteName}`;
+                            await API.post(`websites/${fullSiteName}/restart`);
+                            
+                            // Refresh the website list after restart
+                            await loadWebsites(filterSelect?.value || 'enabled');
+                            Notifications.success('Website restarted successfully');
+                        }
+                    } catch (error) {
+                        showError(error, 'Failed to restart website');
+                    } finally {
+                        button.disabled = false;
+                        button.innerHTML = '<i class="ti ti-refresh"></i>';
+                    }
+                });
+            });
+        };
+
+        // Initial load with default filter
+        await loadWebsites('enabled');
     },
 
     async websiteInfo({ data }) {
         const fullSiteName = `wp.${data.customerId}.${data.siteName}`;
+        
+        // Function to disable/enable all action buttons
+        const setActionButtonsState = (disabled) => {
+            const buttons = [
+                document.getElementById('startWebsite'),
+                document.getElementById('stopWebsite'),
+                document.getElementById('restartWebsite'),
+                document.getElementById('refreshServices')
+            ];
+            buttons.forEach(button => {
+                if (button) button.disabled = disabled;
+            });
+        };
+
+        // Function to refresh services and update buttons
+        const refreshServices = async () => {
+            try {
+                const info = await API.get(`websites/${fullSiteName}/info`);
+                
+                // Update services container
+                const servicesContainer = document.getElementById('servicesContainer');
+                if (servicesContainer) {
+                    const servicesHtml = Object.entries({
+                        'Webserver': info.services.webserver,
+                        'Database': info.services.database,
+                        'phpMyAdmin': info.services.phpmyadmin,
+                        'SFTP': info.services.sftp,
+                        'Backup': info.services.backup
+                    }).map(([name, status]) => {
+                        return Templates.serviceStatusCard(getServiceStatusData(name, status));
+                    }).join('');
+                    
+                    servicesContainer.innerHTML = servicesHtml;
+                }
+
+                // Update button states based on new service status
+                const allDisabled = Object.values(info.services).every(status => status === 'Disabled');
+                const allUp = Object.values(info.services).every(status => status === 'Up');
+                const allDown = Object.values(info.services).every(status => status === 'Down' || status === 'Disabled');
+
+                const startBtn = document.getElementById('startWebsite');
+                const stopBtn = document.getElementById('stopWebsite');
+                const restartBtn = document.getElementById('restartWebsite');
+
+                if (startBtn) startBtn.disabled = allUp || allDisabled;
+                if (stopBtn) stopBtn.disabled = allDown || allDisabled;
+                if (restartBtn) restartBtn.disabled = allDisabled;
+                
+                return info.services;
+            } catch (error) {
+                showError(error, 'Failed to refresh services status');
+                throw error;
+            }
+        };
+
+        // Function to handle service action with automatic refresh
+        const handleServiceAction = async (action, buttonId, loadingText) => {
+            const button = document.getElementById(buttonId);
+            const originalHtml = button.innerHTML;
+            try {
+                setActionButtonsState(true);
+                button.innerHTML = `<i class="ti ti-loader ti-spin me-2"></i>${loadingText}`;
+                
+                await action();
+                
+                // Start periodic status refresh
+                let retryCount = 0;
+                const maxRetries = 10;
+                const refreshInterval = setInterval(async () => {
+                    try {
+                        const services = await refreshServices();
+                        retryCount++;
+                        
+                        // Stop refreshing if all services are in a stable state or max retries reached
+                        const allStable = Object.values(services).every(status => 
+                            status === 'Up' || status === 'Down' || status === 'Disabled'
+                        );
+                        
+                        if (allStable || retryCount >= maxRetries) {
+                            clearInterval(refreshInterval);
+                            setActionButtonsState(false);
+                        }
+                    } catch (error) {
+                        clearInterval(refreshInterval);
+                        setActionButtonsState(false);
+                    }
+                }, 2000);
+                
+                Notifications.success(`Website ${buttonId.replace('Website', '').toLowerCase()}ed successfully`);
+            } catch (error) {
+                showError(error, `Failed to ${buttonId.replace('Website', '')} website`);
+            } finally {
+                button.innerHTML = originalHtml;
+                // Final refresh and button state update will happen in the interval
+            }
+        };
+
+        // Initial render
         const info = await handleAPIRequest(
             () => API.get(`websites/${fullSiteName}/info`),
             'Failed to load website information'
@@ -157,46 +302,39 @@ export const Handlers = {
         console.log('Template data being rendered:', templateData);
         render(Templates.websiteInfo, templateData);
 
+        // Add refresh button handler
+        const refreshBtn = document.getElementById('refreshServices');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', async () => {
+                const icon = refreshBtn.querySelector('i');
+                refreshBtn.disabled = true;
+                icon.classList.add('ti-spin');
+                
+                await refreshServices();
+                
+                refreshBtn.disabled = false;
+                icon.classList.remove('ti-spin');
+            });
+        }
+
         // Add restart button handler
         const restartBtn = document.getElementById('restartWebsite');
         if (restartBtn) {
             restartBtn.addEventListener('click', async () => {
-                try {
-                    const confirmed = await showConfirmation({
-                        type: 'warning',
-                        icon: 'refresh',
-                        title: 'Restart Website?',
-                        message: 'The website will be temporarily unavailable during the restart.',
-                        confirmText: 'Restart'
-                    });
+                const confirmed = await showConfirmation({
+                    type: 'warning',
+                    icon: 'refresh',
+                    title: 'Restart Website?',
+                    message: 'The website will be temporarily unavailable during the restart.',
+                    confirmText: 'Restart'
+                });
 
-                    if (confirmed) {
-                        restartBtn.disabled = true;
-                        restartBtn.innerHTML = '<i class="ti ti-loader ti-spin me-2"></i>Restarting...';
-                        
-                        const fullSiteName = `wp.${data.customerId}.${data.siteName}`;
-                        
-                        // Start periodic status refresh
-                        const refreshInterval = setInterval(() => {
-                            refreshServiceStatus(fullSiteName);
-                        }, 2000); // Refresh every 2 seconds
-                        
-                        await API.restartWebsite(fullSiteName);
-                        
-                        // Continue refreshing for a few more seconds after restart
-                        setTimeout(() => {
-                            clearInterval(refreshInterval);
-                            // One final refresh after services should be up
-                            refreshServiceStatus(fullSiteName);
-                        }, 10000); // Stop refreshing after 10 seconds
-                        
-                        Notifications.success('Website restarted successfully');
-                    }
-                } catch (error) {
-                    showError(error, 'Failed to restart website');
-                } finally {
-                    restartBtn.disabled = false;
-                    restartBtn.innerHTML = '<i class="ti ti-refresh me-2"></i>Restart';
+                if (confirmed) {
+                    await handleServiceAction(
+                        () => API.restartWebsite(fullSiteName),
+                        'restartWebsite',
+                        'Restarting...'
+                    );
                 }
             });
         }
@@ -205,41 +343,20 @@ export const Handlers = {
         const startBtn = document.getElementById('startWebsite');
         if (startBtn) {
             startBtn.addEventListener('click', async () => {
-                try {
-                    const confirmed = await showConfirmation({
-                        type: 'success',
-                        icon: 'player-play',
-                        title: 'Start Website?',
-                        message: 'All services will be started.',
-                        confirmText: 'Start'
-                    });
+                const confirmed = await showConfirmation({
+                    type: 'success',
+                    icon: 'player-play',
+                    title: 'Start Website?',
+                    message: 'All services will be started.',
+                    confirmText: 'Start'
+                });
 
-                    if (confirmed) {
-                        startBtn.disabled = true;
-                        startBtn.innerHTML = '<i class="ti ti-loader ti-spin me-2"></i>Starting...';
-                        
-                        const fullSiteName = `wp.${data.customerId}.${data.siteName}`;
-                        
-                        // Start periodic status refresh
-                        const refreshInterval = setInterval(() => {
-                            refreshServiceStatus(fullSiteName);
-                        }, 2000);
-                        
-                        await API.startWebsite(fullSiteName);
-                        
-                        // Continue refreshing for a few more seconds after start
-                        setTimeout(() => {
-                            clearInterval(refreshInterval);
-                            refreshServiceStatus(fullSiteName);
-                        }, 10000);
-                        
-                        Notifications.success('Website started successfully');
-                    }
-                } catch (error) {
-                    showError(error, 'Failed to start website');
-                } finally {
-                    startBtn.disabled = false;
-                    startBtn.innerHTML = '<i class="ti ti-player-play me-2"></i>Start';
+                if (confirmed) {
+                    await handleServiceAction(
+                        () => API.startWebsite(fullSiteName),
+                        'startWebsite',
+                        'Starting...'
+                    );
                 }
             });
         }
@@ -248,41 +365,20 @@ export const Handlers = {
         const stopBtn = document.getElementById('stopWebsite');
         if (stopBtn) {
             stopBtn.addEventListener('click', async () => {
-                try {
-                    const confirmed = await showConfirmation({
-                        type: 'danger',
-                        icon: 'player-stop',
-                        title: 'Stop Website?',
-                        message: 'All services will be stopped. The website will be unavailable.',
-                        confirmText: 'Stop'
-                    });
+                const confirmed = await showConfirmation({
+                    type: 'danger',
+                    icon: 'player-stop',
+                    title: 'Stop Website?',
+                    message: 'All services will be stopped. The website will be unavailable.',
+                    confirmText: 'Stop'
+                });
 
-                    if (confirmed) {
-                        stopBtn.disabled = true;
-                        stopBtn.innerHTML = '<i class="ti ti-loader ti-spin me-2"></i>Stopping...';
-                        
-                        const fullSiteName = `wp.${data.customerId}.${data.siteName}`;
-                        
-                        // Start periodic status refresh
-                        const refreshInterval = setInterval(() => {
-                            refreshServiceStatus(fullSiteName);
-                        }, 2000);
-                        
-                        await API.stopWebsite(fullSiteName);
-                        
-                        // Continue refreshing for a few more seconds after stop
-                        setTimeout(() => {
-                            clearInterval(refreshInterval);
-                            refreshServiceStatus(fullSiteName);
-                        }, 10000);
-                        
-                        Notifications.success('Website stopped successfully');
-                    }
-                } catch (error) {
-                    showError(error, 'Failed to stop website');
-                } finally {
-                    stopBtn.disabled = false;
-                    stopBtn.innerHTML = '<i class="ti ti-player-stop me-2"></i>Stop';
+                if (confirmed) {
+                    await handleServiceAction(
+                        () => API.stopWebsite(fullSiteName),
+                        'stopWebsite',
+                        'Stopping...'
+                    );
                 }
             });
         }

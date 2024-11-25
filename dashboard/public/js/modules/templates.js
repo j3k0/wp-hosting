@@ -4,8 +4,24 @@ Handlebars.registerHelper('eq', function(a, b) {
     return a === b;
 });
 
+Handlebars.registerHelper('or', function() {
+    return Array.prototype.slice.call(arguments, 0, -1).some(Boolean);
+});
+
 Handlebars.registerHelper('serviceStatus', function(service, status) {
     return getServiceStatusData(service, status);
+});
+
+Handlebars.registerHelper('allServicesDisabled', function(services) {
+    return Object.values(services).every(status => status === 'Disabled');
+});
+
+Handlebars.registerHelper('allServicesUp', function(services) {
+    return Object.values(services).every(status => status === 'Up');
+});
+
+Handlebars.registerHelper('allServicesDown', function(services) {
+    return Object.values(services).every(status => status === 'Down' || status === 'Disabled');
 });
 
 const serviceStatusCardTemplate = `
@@ -141,6 +157,13 @@ export const Templates = {
                             Websites for {{customerId}}
                         </h2>
                     </div>
+                    <div class="col-auto">
+                        <select class="form-select" id="websiteFilter">
+                            <option value="all" {{#if (eq filter "all")}}selected{{/if}}>All Sites</option>
+                            <option value="enabled" {{#if (eq filter "enabled")}}selected{{/if}}>Enabled Sites</option>
+                            <option value="disabled" {{#if (eq filter "disabled")}}selected{{/if}}>Disabled Sites</option>
+                        </select>
+                    </div>
                 </div>
             </div>
         </div>
@@ -196,11 +219,11 @@ export const Templates = {
                                                title="View Logs">
                                                 <i class="ti ti-file-text"></i>
                                             </a>
-                                            <button class="btn btn-icon btn-ghost-secondary" title="Backup">
-                                                <i class="ti ti-download"></i>
-                                            </button>
-                                            <button class="btn btn-icon btn-ghost-secondary" title="Settings">
-                                                <i class="ti ti-settings"></i>
+                                            <button class="btn btn-icon btn-ghost-warning" 
+                                                    data-action="restart-website"
+                                                    data-site-name="{{siteName}}"
+                                                    title="Restart Website">
+                                                <i class="ti ti-refresh"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -244,13 +267,18 @@ export const Templates = {
                     <!-- Service Status Card -->
                     <div class="card mb-3">
                         <div class="card-header">
-                            <h3 class="card-title">
-                                <i class="ti ti-activity me-2"></i>
-                                Service Status
-                            </h3>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h3 class="card-title">
+                                    <i class="ti ti-activity me-2"></i>
+                                    Service Status
+                                </h3>
+                                <button class="btn btn-icon btn-ghost-secondary" id="refreshServices" title="Refresh Status">
+                                    <i class="ti ti-refresh"></i>
+                                </button>
+                            </div>
                         </div>
                         <div class="card-body">
-                            <div class="row g-3">
+                            <div class="row g-3" id="servicesContainer">
                                 {{#with (serviceStatus 'Webserver' services.webserver)}}
                                     {{> serviceStatusCard}}
                                 {{/with}}
@@ -282,27 +310,26 @@ export const Templates = {
                             <div class="btn-list">
                                 <a href="/websites/{{customerId}}/logs/{{siteName}}" 
                                    data-navigo 
-                                   class="btn btn-outline-primary">
+                                   class="btn btn-outline-primary {{#if (allServicesDisabled services)}}disabled{{/if}}"
+                                   {{#if (allServicesDisabled services)}}aria-disabled="true" onclick="return false;"{{/if}}>
                                     <i class="ti ti-file-text me-2"></i>
                                     View Logs
                                 </a>
-                                <button class="btn btn-outline-primary" disabled>
-                                    <i class="ti ti-download me-2"></i>
-                                    Backup
-                                </button>
-                                <button class="btn btn-outline-primary" disabled>
-                                    <i class="ti ti-upload me-2"></i>
-                                    Restore
-                                </button>
-                                <button class="btn btn-outline-warning" id="restartWebsite">
+                                <button class="btn btn-outline-warning" 
+                                        id="restartWebsite"
+                                        {{#if (allServicesDisabled services)}}disabled{{/if}}>
                                     <i class="ti ti-refresh me-2"></i>
                                     Restart
                                 </button>
-                                <button class="btn btn-outline-success" id="startWebsite">
+                                <button class="btn btn-outline-success" 
+                                        id="startWebsite"
+                                        {{#if (or (allServicesUp services) (allServicesDisabled services))}}disabled{{/if}}>
                                     <i class="ti ti-player-play me-2"></i>
                                     Start
                                 </button>
-                                <button class="btn btn-outline-danger" id="stopWebsite">
+                                <button class="btn btn-outline-danger" 
+                                        id="stopWebsite"
+                                        {{#if (or (allServicesDown services) (allServicesDisabled services))}}disabled{{/if}}>
                                     <i class="ti ti-player-stop me-2"></i>
                                     Stop
                                 </button>
