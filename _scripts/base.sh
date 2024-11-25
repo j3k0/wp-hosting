@@ -24,6 +24,7 @@ APPNAME=`echo $PROJECT | sed s/\\\\.//g`
 # Read and export config
 . $PROJECT/config
 export PROJECT
+export ORIGINAL_DOMAIN
 export APPNAME
 export WORDPRESS_PORT
 export PHPMYADMIN_PORT
@@ -38,9 +39,12 @@ if [ "x$DOMAIN" = "x" ]; then
 fi
 export DOMAIN
 
-export BACKEND_PMA_DOMAIN="phpmyadmin-${DOMAIN//./-}.${BACKEND_DOMAIN}"
-export BACKEND_WWW_DOMAIN="www-${DOMAIN//./-}.${BACKEND_DOMAIN}"
-export BACKEND_CDN_DOMAIN="cdn-${DOMAIN//./-}.${BACKEND_DOMAIN}"
+# Utiliser ORIGINAL_DOMAIN pour les domaines backend si défini
+BACKEND_DOMAIN_BASE=${ORIGINAL_DOMAIN:-$DOMAIN}
+
+export BACKEND_PMA_DOMAIN="phpmyadmin-${BACKEND_DOMAIN_BASE//./-}.${BACKEND_DOMAIN}"
+export BACKEND_WWW_DOMAIN="www-${BACKEND_DOMAIN_BASE//./-}.${BACKEND_DOMAIN}"
+export BACKEND_CDN_DOMAIN="cdn-${BACKEND_DOMAIN_BASE//./-}.${BACKEND_DOMAIN}"
 
 if [ "x$SALT" = "x" ]; then
     SALT="$RANDOM-$RANDOM-$RANDOM-$RANDOM"

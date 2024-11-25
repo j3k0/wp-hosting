@@ -5,18 +5,11 @@ cd "$(dirname "$0")"
 . _scripts/base.sh
 . config/base
 
-WWW_HOSTS=`cat $PROJECT/nginx-site | grep www | grep server_name | sort | uniq | cut -d\; -f1 | awk '{print $2, $3, $4}'`
-PHPMYADMIN_HOSTS=`cat $PROJECT/nginx-site | grep phpmyadmin | grep server_name | sort | uniq | cut -d\; -f1 | awk '{print $2, $3, $4}'`
+# Generate website URLs
+WWW_URLS="- https://$DOMAIN
+- https://${BACKEND_WWW_DOMAIN}"
 
-for i in $WWW_HOSTS; do
-WWW_URLS="$WWW_URLS - http://$i
-"
-done
-
-for i in $PHPMYADMIN_HOSTS; do
-PHPMYADMIN_URLS="$PHPMYADMIN_URLS - https://$i
-"
-done
+PHPMYADMIN_URLS="- https://$BACKEND_PMA_DOMAIN"
 
 # Check if domain is a subdomain
 is_subdomain() {
