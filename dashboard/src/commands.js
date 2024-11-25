@@ -312,6 +312,26 @@ class Commands {
             throw new Error('Failed to get service statuses');
         }
     }
+
+    async stopWebsite(siteName) {
+        try {
+            const { stdout } = await this.executeScript('dockerCompose', [siteName, 'stop']);
+            return stdout;
+        } catch (error) {
+            console.error('Error stopping website:', error);
+            throw new Error('Failed to stop website');
+        }
+    }
+
+    async startWebsite(siteName) {
+        try {
+            const { stdout } = await this.executeScript('dockerCompose', [siteName, 'up', '-d']);
+            return stdout;
+        } catch (error) {
+            console.error('Error starting website:', error);
+            throw new Error('Failed to start website');
+        }
+    }
 }
 
 module.exports = new Commands(); 

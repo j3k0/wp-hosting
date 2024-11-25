@@ -54,5 +54,13 @@ export const API = {
 
     async restartWebsite(siteName) {
         return this.post(`websites/${siteName}/restart`);
+    },
+
+    async stopWebsite(siteName) {
+        return this.post(`websites/${siteName}/stop`);
+    },
+
+    async startWebsite(siteName) {
+        return this.post(`websites/${siteName}/start`);
     }
 }; 

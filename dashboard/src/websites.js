@@ -112,6 +112,48 @@ const websites = {
             console.error('Error restarting website:', error);
             res.status(500).json({ error: 'Failed to restart website' });
         }
+    },
+
+    async stopWebsite(req, res) {
+        try {
+            const siteName = req.params.siteName;
+            const userClientId = req.user.clientId;
+            const isAdmin = req.user.isAdmin;
+
+            // Verify access rights
+            if (!isAdmin && !siteName.startsWith(`wp.${userClientId}.`)) {
+                return res.status(403).json({ 
+                    error: 'Access denied: You can only stop your own websites'
+                });
+            }
+
+            await commands.stopWebsite(siteName);
+            res.json({ message: 'Website stopped successfully' });
+        } catch (error) {
+            console.error('Error stopping website:', error);
+            res.status(500).json({ error: 'Failed to stop website' });
+        }
+    },
+
+    async startWebsite(req, res) {
+        try {
+            const siteName = req.params.siteName;
+            const userClientId = req.user.clientId;
+            const isAdmin = req.user.isAdmin;
+
+            // Verify access rights
+            if (!isAdmin && !siteName.startsWith(`wp.${userClientId}.`)) {
+                return res.status(403).json({ 
+                    error: 'Access denied: You can only start your own websites'
+                });
+            }
+
+            await commands.startWebsite(siteName);
+            res.json({ message: 'Website started successfully' });
+        } catch (error) {
+            console.error('Error starting website:', error);
+            res.status(500).json({ error: 'Failed to start website' });
+        }
     }
 };
 

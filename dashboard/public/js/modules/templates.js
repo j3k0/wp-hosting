@@ -13,6 +13,36 @@ Handlebars.registerHelper('serviceStatus', function(service, status) {
     };
 });
 
+const serviceStatusCardTemplate = `
+    <div class="col-sm-6 col-lg">
+        <div class="card card-sm">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-auto">
+                        <span class="status-indicator status-{{statusColor}} status-indicator-animated">
+                            <span class="status-indicator-circle"></span>
+                            <span class="status-indicator-circle"></span>
+                            <span class="status-indicator-circle"></span>
+                        </span>
+                    </div>
+                    <div class="col">
+                        <div class="font-weight-medium">
+                            {{name}}
+                            {{#unless isUp}}
+                                <div class="text-muted small">
+                                    ({{status}})
+                                </div>
+                            {{/unless}}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+`;
+
+Handlebars.registerPartial('serviceStatusCard', serviceStatusCardTemplate);
+
 export const Templates = {
     login: Handlebars.compile(`
         <div class="container-tight py-4">
@@ -253,13 +283,13 @@ export const Templates = {
                                     <i class="ti ti-refresh me-2"></i>
                                     Restart
                                 </button>
-                                <button class="btn btn-outline-warning" disabled>
-                                    <i class="ti ti-refresh me-2"></i>
-                                    Rebuild Cache
+                                <button class="btn btn-outline-success" id="startWebsite">
+                                    <i class="ti ti-player-play me-2"></i>
+                                    Start
                                 </button>
-                                <button class="btn btn-outline-danger" disabled>
-                                    <i class="ti ti-trash me-2"></i>
-                                    Delete
+                                <button class="btn btn-outline-danger" id="stopWebsite">
+                                    <i class="ti ti-player-stop me-2"></i>
+                                    Stop
                                 </button>
                             </div>
                         </div>
@@ -560,31 +590,11 @@ export const Templates = {
         </div>
     `),
 
-    serviceStatusCard: Handlebars.registerPartial('serviceStatusCard', `
-        <div class="col-sm-6 col-lg">
-            <div class="card card-sm">
-                <div class="card-body">
-                    <div class="row align-items-center">
-                        <div class="col-auto">
-                            <span class="status-indicator status-{{statusColor}} status-indicator-animated">
-                                <span class="status-indicator-circle"></span>
-                                <span class="status-indicator-circle"></span>
-                                <span class="status-indicator-circle"></span>
-                            </span>
-                        </div>
-                        <div class="col">
-                            <div class="font-weight-medium">
-                                {{name}}
-                                {{#unless isUp}}
-                                    <div class="text-muted small">
-                                        ({{status}})
-                                    </div>
-                                {{/unless}}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `)
+    serviceStatus: Handlebars.compile(`
+        {{#with (serviceStatus name status)}}
+            {{this}}
+        {{/with}}
+    `),
+
+    serviceStatusCard: Handlebars.compile(serviceStatusCardTemplate)
 }; 
