@@ -1,6 +1,8 @@
 import { API } from './api.js';
 import { Templates } from './templates.js';
 import { render } from '../main.js';
+import { Notifications } from './utils.js';
+import { showConfirmation } from './utils.js';
 
 function formatBytes(bytes) {
     if (bytes === 0) return '0 B';
@@ -13,7 +15,7 @@ function formatBytes(bytes) {
 // Add utility functions at the top
 const showError = (error, context) => {
     console.error(`${context}:`, error);
-    alert(`${context}: ${error.message}`);
+    Notifications.error(`${context}: ${error.message}`);
 };
 
 const handleAPIRequest = async (apiCall, errorContext) => {
@@ -31,16 +33,23 @@ export const Handlers = {
         
         document.getElementById('login').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const formData = new FormData(e.target);
             
-            await handleAPIRequest(async () => {
-                const data = await API.post('login', {
-                    username: formData.get('username'),
-                    password: formData.get('password')
-                });
+            try {
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+
+                if (!username || !password) {
+                    throw new Error('Please enter both username and password');
+                }
+
+                const data = await API.post('login', { username, password });
                 window.userData = data;
                 window.router.navigate(data.isAdmin ? '/customers' : `/websites/${data.clientId}`);
-            }, 'Login failed');
+            } catch (error) {
+                showError(error, 'Login failed');
+                // Clear password field on error
+                document.getElementById('password').value = '';
+            }
         });
     },
 
@@ -108,6 +117,37 @@ export const Handlers = {
 
         console.log('Template data being rendered:', templateData);
         render(Templates.websiteInfo, templateData);
+
+        // Add restart button handler
+        const restartBtn = document.getElementById('restartWebsite');
+        if (restartBtn) {
+            restartBtn.addEventListener('click', async () => {
+                try {
+                    const confirmed = await showConfirmation({
+                        type: 'warning',
+                        icon: 'refresh',
+                        title: 'Restart Website?',
+                        message: 'The website will be temporarily unavailable during the restart.',
+                        confirmText: 'Restart'
+                    });
+
+                    if (confirmed) {
+                        restartBtn.disabled = true;
+                        restartBtn.innerHTML = '<i class="ti ti-loader ti-spin me-2"></i>Restarting...';
+                        
+                        const fullSiteName = `wp.${data.customerId}.${data.siteName}`;
+                        await API.restartWebsite(fullSiteName);
+                        
+                        Notifications.success('Website restarted successfully');
+                    }
+                } catch (error) {
+                    showError(error, 'Failed to restart website');
+                } finally {
+                    restartBtn.disabled = false;
+                    restartBtn.innerHTML = '<i class="ti ti-refresh me-2"></i>Restart';
+                }
+            });
+        }
     },
 
     async users() {
@@ -125,7 +165,32 @@ export const Handlers = {
     setupUserFormHandlers() {
         const form = document.getElementById('addUserForm');
         if (form) {
-            form.addEventListener('submit', this.handleAddUser);
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                const clientId = formData.get('clientId');
+
+                try {
+                    await API.post('users', {
+                        username: clientId,
+                        password: formData.get('password'),
+                        clientId: clientId,
+                        isAdmin: false
+                    });
+
+                    // Close modal and reset form
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('addUserModal'));
+                    modal.hide();
+                    e.target.reset();
+                    
+                    // Refresh users list
+                    Handlers.users();
+                    
+                    Notifications.success('User created successfully');
+                } catch (error) {
+                    showError(error, 'Failed to create user');
+                }
+            });
         }
 
         // Add global handlers
@@ -133,46 +198,45 @@ export const Handlers = {
         window.deleteUser = this.handleDeleteUser;
     },
 
-    async handleAddUser(e) {
-        e.preventDefault();
-        const formData = new FormData(e.target);
-        const clientId = formData.get('clientId');
-
-        await handleAPIRequest(async () => {
-            await API.post('users', {
-                username: clientId,
-                password: formData.get('password'),
-                clientId: clientId,
-                isAdmin: false
+    async handleResetPassword(username) {
+        try {
+            const confirmed = await showConfirmation({
+                type: 'warning',
+                icon: 'key',
+                title: 'Reset Password',
+                message: `Are you sure you want to reset the password for ${username}?`,
+                confirmText: 'Reset Password'
             });
 
-            // Close modal and reset form
-            const modal = bootstrap.Modal.getInstance(document.getElementById('addUserModal'));
-            modal.hide();
-            e.target.reset();
-            
-            // Refresh users list
-            Handlers.users();
-        }, 'Failed to create user');
-    },
-
-    async handleResetPassword(username) {
-        const password = prompt('Enter new password for ' + username);
-        if (password) {
-            await handleAPIRequest(
-                () => API.post(`users/${username}/reset-password`, { password }),
-                'Failed to reset password'
-            );
-            alert('Password updated successfully');
+            if (confirmed) {
+                const password = prompt('Enter new password for ' + username);
+                if (password) {
+                    await API.post(`users/${username}/reset-password`, { password });
+                    Notifications.success('Password updated successfully');
+                }
+            }
+        } catch (error) {
+            showError(error, 'Failed to reset password');
         }
     },
 
     async handleDeleteUser(username) {
-        if (confirm(`Are you sure you want to delete user "${username}"?`)) {
-            await handleAPIRequest(async () => {
+        try {
+            const confirmed = await showConfirmation({
+                type: 'danger',
+                icon: 'trash',
+                title: 'Delete User',
+                message: `Are you sure you want to delete user "${username}"? This action cannot be undone.`,
+                confirmText: 'Delete'
+            });
+
+            if (confirmed) {
                 await API.delete(`users/${username}`);
+                Notifications.success('User deleted successfully');
                 Handlers.users();
-            }, 'Failed to delete user');
+            }
+        } catch (error) {
+            showError(error, 'Failed to delete user');
         }
     },
 
@@ -180,7 +244,12 @@ export const Handlers = {
         const fullSiteName = `wp.${data.customerId}.${data.siteName}`;
         const lines = document.getElementById('logLines')?.value || 100;
         
-        await Handlers.loadLogs(fullSiteName, lines, data);
+        try {
+            await Handlers.loadLogs(fullSiteName, lines, data);
+            Notifications.info('Logs refreshed');
+        } catch (error) {
+            showError(error, 'Failed to load logs');
+        }
     },
 
     loadLogs: async function(fullSiteName, lines, data) {

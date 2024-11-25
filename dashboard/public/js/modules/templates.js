@@ -15,7 +15,7 @@ export const Templates = {
                                 <span class="input-icon-addon">
                                     <i class="ti ti-user"></i>
                                 </span>
-                                <input type="text" id="username" class="form-control" placeholder="Username" required>
+                                <input type="text" name="username" id="username" class="form-control" placeholder="Username" required>
                             </div>
                         </div>
                         <div class="mb-3">
@@ -24,7 +24,7 @@ export const Templates = {
                                 <span class="input-icon-addon">
                                     <i class="ti ti-lock"></i>
                                 </span>
-                                <input type="password" id="password" class="form-control" placeholder="Password" required>
+                                <input type="password" name="password" id="password" class="form-control" placeholder="Password" required>
                             </div>
                         </div>
                         <div class="form-footer">
@@ -208,6 +208,10 @@ export const Templates = {
                                 <button class="btn btn-outline-primary" disabled>
                                     <i class="ti ti-upload me-2"></i>
                                     Restore
+                                </button>
+                                <button class="btn btn-outline-warning" id="restartWebsite">
+                                    <i class="ti ti-refresh me-2"></i>
+                                    Restart
                                 </button>
                                 <button class="btn btn-outline-warning" disabled>
                                     <i class="ti ti-refresh me-2"></i>
@@ -475,6 +479,38 @@ export const Templates = {
                     <div class="card-body">
                         <div class="logs-container bg-dark text-light p-3" style="font-family: monospace;">
                             {{{logs}}}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `),
+
+    confirmModal: Handlebars.compile(`
+        <div class="modal modal-blur fade" id="confirmModal" tabindex="-1" role="dialog" aria-hidden="true">
+            <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <div class="modal-status bg-{{type}}"></div>
+                    <div class="modal-body text-center py-4">
+                        <i class="ti ti-{{icon}} icon mb-3 icon-lg text-{{type}}"></i>
+                        <h3>{{title}}</h3>
+                        <div class="text-muted">{{message}}</div>
+                    </div>
+                    <div class="modal-footer">
+                        <div class="w-100">
+                            <div class="row">
+                                <div class="col">
+                                    <button class="btn w-100" data-bs-dismiss="modal">
+                                        Cancel
+                                    </button>
+                                </div>
+                                <div class="col">
+                                    <button class="btn btn-{{type}} w-100" id="confirmModalAction">
+                                        {{confirmText}}
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

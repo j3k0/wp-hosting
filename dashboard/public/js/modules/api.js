@@ -2,21 +2,37 @@
 export const API = {
     // Common fetch handler to reduce duplication
     async fetchAPI(endpoint, options = {}) {
-        const response = await fetch(`/api/${endpoint}`, {
-            ...options,
-            headers: {
-                'Content-Type': 'application/json',
-                ...options.headers
-            }
-        });
+        try {
+            const response = await fetch(`/api/${endpoint}`, {
+                ...options,
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...options.headers
+                }
+            });
 
-        if (!response.ok) {
-            if (response.status === 401 || response.status === 403) {
-                throw new Error('auth_required');
+            const data = await response.json();
+
+            if (!response.ok) {
+                // For login errors, throw the specific error message
+                if (endpoint === 'login') {
+                    throw new Error(data.error || 'Login failed');
+                }
+                
+                // For authentication errors
+                if (response.status === 401 || response.status === 403) {
+                    window.router.navigate('/login');
+                    throw new Error('Authentication required. Please log in again.');
+                }
+
+                // For other errors
+                throw new Error(data.error || `API Error: ${response.statusText}`);
             }
-            throw new Error(`API Error: ${response.statusText}`);
+
+            return data;
+        } catch (error) {
+            throw error;
         }
-        return response.json();
     },
 
     async get(endpoint) {
@@ -34,5 +50,9 @@ export const API = {
         return this.fetchAPI(endpoint, {
             method: 'DELETE'
         });
+    },
+
+    async restartWebsite(siteName) {
+        return this.post(`websites/${siteName}/restart`);
     }
 }; 

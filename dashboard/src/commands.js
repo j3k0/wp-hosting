@@ -17,6 +17,7 @@ class Commands {
             backup: path.join(SCRIPTS_DIR, 'backup.sh'),
             restore: path.join(SCRIPTS_DIR, 'restore.sh'),
             logs: path.join(SCRIPTS_DIR, 'logs_wordpress.sh'),
+            dockerCompose: path.join(SCRIPTS_DIR, 'docker-compose.sh'),
         };
 
         // Initialize ANSI converter with options
@@ -235,6 +236,16 @@ class Commands {
         } catch (error) {
             console.error('Error getting logs:', error);
             throw new Error('Failed to get WordPress logs');
+        }
+    }
+
+    async restartWebsite(siteName) {
+        try {
+            const { stdout } = await this.executeScript('dockerCompose', [siteName, 'restart', 'wordpress', 'db']);
+            return stdout;
+        } catch (error) {
+            console.error('Error restarting website:', error);
+            throw new Error('Failed to restart website');
         }
     }
 }

@@ -49,6 +49,7 @@ app.get('/api/user', auth.authenticate, (req, res) => {
 });
 app.get('/api/websites/:siteName/info', auth.authenticate, websites.getWebsiteInfo);
 app.get('/api/websites/:siteName/logs', auth.authenticate, websites.getWebsiteLogs);
+app.post('/api/websites/:siteName/restart', auth.authenticate, websites.restartWebsite);
 
 // User routes
 app.get('/api/users', auth.authenticateAdmin, auth.listUsers);

@@ -91,6 +91,27 @@ const websites = {
             console.error('Error getting website logs:', error);
             res.status(500).json({ error: 'Failed to get website logs' });
         }
+    },
+
+    async restartWebsite(req, res) {
+        try {
+            const siteName = req.params.siteName;
+            const userClientId = req.user.clientId;
+            const isAdmin = req.user.isAdmin;
+
+            // Verify access rights
+            if (!isAdmin && !siteName.startsWith(`wp.${userClientId}.`)) {
+                return res.status(403).json({ 
+                    error: 'Access denied: You can only restart your own websites'
+                });
+            }
+
+            await commands.restartWebsite(siteName);
+            res.json({ message: 'Website restarted successfully' });
+        } catch (error) {
+            console.error('Error restarting website:', error);
+            res.status(500).json({ error: 'Failed to restart website' });
+        }
     }
 };
 

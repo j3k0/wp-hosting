@@ -1,5 +1,6 @@
 #!/bin/bash
 
+cd "$(dirname "$0")"
 . _scripts/base.sh
 
 if test -e "$PROJECT/docker-compose.yml"; then

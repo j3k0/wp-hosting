@@ -1,5 +1,7 @@
 #!/bin/bash
 
+cd "$(dirname "$0")"
+
 . _scripts/base.sh
 . config/base
 
@@ -12,9 +14,30 @@ WWW_URLS="$WWW_URLS - http://$i
 done
 
 for i in $PHPMYADMIN_HOSTS; do
-PHPMYADMIN_URLS="$PHPMYADMIN_URLS - http://$i
+PHPMYADMIN_URLS="$PHPMYADMIN_URLS - https://$i
 "
 done
+
+# Check if domain is a subdomain
+is_subdomain() {
+    local domain=$1
+    if [[ $(echo "$domain" | grep -o "\." | wc -l) -gt 1 ]]; then
+        return 0 # true
+    else
+        return 1 # false
+    fi
+}
+
+# Generate DNS configuration
+if is_subdomain "$DOMAIN"; then
+    # For subdomains, use CNAME
+    DNS_CONFIG="$DOMAIN. CNAME ${BACKEND_WWW_DOMAIN}."
+else
+    # For root domains, use A record and additional CNAMEs
+    DNS_CONFIG="$DOMAIN. A ${BACKEND_IP}
+www.$DOMAIN. CNAME ${BACKEND_WWW_DOMAIN}."
+    # cdn.$DOMAIN. CNAME ${BACKEND_CDN_DOMAIN}.
+fi
 
 cat << EOF
 
@@ -39,9 +62,7 @@ SFTP Password: $ADMIN_PASSWORD
 ** DNS **
 
 \`\`\`
-$DOMAIN. A ${BACKEND_IP}
-www.$DOMAIN. CNAME ${BACKEND_WWW_DOMAIN}.
-cdn.$DOMAIN. CNAME ${BACKEND_CDN_DOMAIN}.
+$DNS_CONFIG
 \`\`\`
 
 EOF
