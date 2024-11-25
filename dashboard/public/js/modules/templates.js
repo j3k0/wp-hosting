@@ -362,14 +362,16 @@ export const Templates = {
                                             <td>
                                                 <div class="btn-list">
                                                     <button class="btn btn-ghost-secondary" 
-                                                            onclick="resetPassword('{{username}}')"
+                                                            data-action="reset-password"
+                                                            data-username="{{username}}"
                                                             title="Reset Password">
                                                         <i class="ti ti-key me-1"></i>
                                                         Reset Password
                                                     </button>
                                                     {{#unless isAdmin}}
                                                     <button class="btn btn-ghost-danger" 
-                                                            onclick="deleteUser('{{username}}')"
+                                                            data-action="delete-user"
+                                                            data-username="{{username}}"
                                                             title="Delete User">
                                                         <i class="ti ti-trash me-1"></i>
                                                         Delete

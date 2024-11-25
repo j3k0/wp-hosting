@@ -157,17 +157,17 @@ export const Handlers = {
         );
         render(Templates.users, { users });
 
-        // Setup form handlers
-        this.setupUserFormHandlers();
+        // Fix: Bind the correct this context
+        Handlers.setupUserFormHandlers();
     },
 
-    // Extract user management handlers to separate methods
+    // Make setupUserFormHandlers a proper method of the Handlers object
     setupUserFormHandlers() {
         const form = document.getElementById('addUserForm');
         if (form) {
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const formData = new FormData(e.target);
+                const formData = new FormData(form);
                 const clientId = formData.get('clientId');
 
                 try {
@@ -181,10 +181,10 @@ export const Handlers = {
                     // Close modal and reset form
                     const modal = bootstrap.Modal.getInstance(document.getElementById('addUserModal'));
                     modal.hide();
-                    e.target.reset();
+                    form.reset();
                     
                     // Refresh users list
-                    Handlers.users();
+                    await Handlers.users();  // Use Handlers instead of this
                     
                     Notifications.success('User created successfully');
                 } catch (error) {
@@ -193,9 +193,20 @@ export const Handlers = {
             });
         }
 
-        // Add global handlers
-        window.resetPassword = this.handleResetPassword;
-        window.deleteUser = this.handleDeleteUser;
+        // Add event handlers for reset password and delete buttons
+        document.addEventListener('click', async (e) => {
+            const resetBtn = e.target.closest('[data-action="reset-password"]');
+            const deleteBtn = e.target.closest('[data-action="delete-user"]');
+
+            if (resetBtn) {
+                const username = resetBtn.dataset.username;
+                await Handlers.handleResetPassword(username);
+            }
+            else if (deleteBtn) {
+                const username = deleteBtn.dataset.username;
+                await Handlers.handleDeleteUser(username);
+            }
+        });
     },
 
     async handleResetPassword(username) {
@@ -233,7 +244,7 @@ export const Handlers = {
             if (confirmed) {
                 await API.delete(`users/${username}`);
                 Notifications.success('User deleted successfully');
-                Handlers.users();
+                await Handlers.users();  // Use Handlers instead of this
             }
         } catch (error) {
             showError(error, 'Failed to delete user');
@@ -266,7 +277,7 @@ export const Handlers = {
         });
 
         // Re-attach event handlers after render
-        this.setupLogHandlers(fullSiteName, data);
+        Handlers.setupLogHandlers(fullSiteName, data);
     },
 
     setupLogHandlers: function(fullSiteName, data) {
@@ -275,14 +286,14 @@ export const Handlers = {
 
         if (lineSelect) {
             lineSelect.addEventListener('change', () => {
-                this.loadLogs(fullSiteName, lineSelect.value, data);
+                Handlers.loadLogs(fullSiteName, lineSelect.value, data);
             });
         }
 
         if (refreshBtn) {
             refreshBtn.addEventListener('click', () => {
                 const currentLines = document.getElementById('logLines')?.value || 100;
-                this.loadLogs(fullSiteName, currentLines, data);
+                Handlers.loadLogs(fullSiteName, currentLines, data);
             });
         }
     }

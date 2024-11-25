@@ -1,3 +1,5 @@
+import { Templates } from './templates.js';
+
 export const Notifications = {
     show(message, type = 'success') {
         const icons = {
