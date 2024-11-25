@@ -254,7 +254,7 @@ class Commands {
         }
     }
 
-    async getServiceStatuses(siteName) {
+    async getServiceStatuses(siteName, retryCount = 0) {
         try {
             const { stdout } = await this.executeScript('dockerCompose', [siteName, 'ps', '-a']);
             
@@ -308,6 +308,27 @@ class Commands {
 
             return statuses;
         } catch (error) {
+            // Check if error is about missing container and we haven't retried too many times
+            if (error.stderr?.includes('No such container:') && retryCount < 3) {
+                console.log(`Container not found, retrying (attempt ${retryCount + 1})...`);
+                // Wait a short time before retrying
+                await new Promise(resolve => setTimeout(resolve, 500));
+                return this.getServiceStatuses(siteName, retryCount + 1);
+            }
+
+            // If we've retried too many times or it's a different error, return default statuses
+            if (error.stderr?.includes('No such container:')) {
+                console.log('Container not found after retries, returning default statuses');
+                return {
+                    backup: 'Down',
+                    database: 'Down',
+                    phpmyadmin: 'Down',
+                    sftp: 'Down',
+                    webserver: 'Down'
+                };
+            }
+
+            // For other errors, throw normally
             console.error('Error getting service statuses:', error);
             throw new Error('Failed to get service statuses');
         }

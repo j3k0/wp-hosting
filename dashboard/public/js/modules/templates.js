@@ -1,16 +1,11 @@
+import { getServiceStatusData } from './handlers.js';
+
 Handlebars.registerHelper('eq', function(a, b) {
     return a === b;
 });
 
 Handlebars.registerHelper('serviceStatus', function(service, status) {
-    return {
-        name: service,
-        status: status,
-        isUp: status === 'Up',
-        isDisabled: status === 'Disabled',
-        statusColor: status === 'Up' ? 'green' : 
-                    status === 'Disabled' ? 'black' : 'red'
-    };
+    return getServiceStatusData(service, status);
 });
 
 const serviceStatusCardTemplate = `
@@ -19,7 +14,7 @@ const serviceStatusCardTemplate = `
             <div class="card-body">
                 <div class="row align-items-center">
                     <div class="col-auto">
-                        <span class="status-indicator status-{{statusColor}} status-indicator-animated">
+                        <span class="status-indicator status-{{statusColor}} {{#if isAnimated}}status-indicator-animated{{/if}}">
                             <span class="status-indicator-circle"></span>
                             <span class="status-indicator-circle"></span>
                             <span class="status-indicator-circle"></span>

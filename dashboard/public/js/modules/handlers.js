@@ -28,6 +28,18 @@ const handleAPIRequest = async (apiCall, errorContext) => {
 };
 
 // Add this helper function at the top with the other utility functions
+export const getServiceStatusData = (service, status) => {
+    return {
+        name: service,
+        status: status,
+        isUp: status === 'Up',
+        isDisabled: status === 'Disabled',
+        statusColor: status === 'Up' ? 'green' : 
+                    status === 'Disabled' ? 'dark' : 'red',
+        isAnimated: status !== 'Disabled'
+    };
+};
+
 const refreshServiceStatus = async (fullSiteName) => {
     try {
         const info = await API.get(`websites/${fullSiteName}/info`);
@@ -49,16 +61,7 @@ const refreshServiceStatus = async (fullSiteName) => {
                     'backup': 'Backup'
                 }[serviceKey];
 
-                const serviceData = {
-                    name: displayName,
-                    status: status,
-                    isUp: status === 'Up',
-                    isDisabled: status === 'Disabled',
-                    statusColor: status === 'Up' ? 'green' : 
-                                status === 'Disabled' ? 'black' : 'red'
-                };
-                
-                return Templates.serviceStatusCard(serviceData);
+                return Templates.serviceStatusCard(getServiceStatusData(displayName, status));
             }).join('');
             
             servicesContainer.innerHTML = servicesHtml;
