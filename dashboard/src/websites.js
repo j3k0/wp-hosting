@@ -22,18 +22,50 @@ const websites = {
                 return res.status(403).json({ error: 'Access denied' });
             }
 
+            // Get all sites
             const sites = await commands.listWebsites(clientIdToUse);
             
-            // Récupérer l'utilisation du disque pour tous les sites
+            // Get all containers status at once
+            const containers = await commands.getDockerContainers();
+            
+            // Get disk usage
             const usages = await diskUsage.getMultipleUsage(sites);
             
-            // Combiner les informations
-            const sitesWithUsage = sites.map(site => ({
-                name: site,
-                usage: usages.get(site) || 0
+            // Process each site
+            const sitesWithInfo = await Promise.all(sites.map(async site => {
+                // Filter containers for this site
+                const siteContainers = containers.filter(container => {
+                    const labels = container.Labels.split(',').reduce((acc, label) => {
+                        const [key, value] = label.split('=');
+                        acc[key] = value;
+                        return acc;
+                    }, {});
+                    return labels['com.docker.compose.project.working_dir'] === `/apps/wp-hosting/${site}`;
+                });
+
+                // Get wordpress and database status
+                let wordpressStatus = 'Disabled';
+                let databaseStatus = 'Disabled';
+
+                for (const container of siteContainers) {
+                    if (container.Names.includes('_wordpress_')) {
+                        wordpressStatus = container.State === 'running' ? 'Up' : 'Down';
+                    } else if (container.Names.includes('_db_')) {
+                        databaseStatus = container.State === 'running' ? 'Up' : 'Down';
+                    }
+                }
+
+                return {
+                    name: site,
+                    usage: usages.get(site) || 0,
+                    services: {
+                        webserver: wordpressStatus,
+                        database: databaseStatus
+                    }
+                };
             }));
 
-            res.json({ sites: sitesWithUsage });
+            res.json({ sites: sitesWithInfo });
         } catch (error) {
             console.error('Error listing websites:', error);
             res.status(500).json({ error: 'Failed to list websites' });

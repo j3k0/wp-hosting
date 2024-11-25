@@ -254,9 +254,22 @@ class Commands {
         }
     }
 
-    async getServiceStatuses(siteName, retryCount = 0) {
+    async getDockerContainers() {
         try {
-            const { stdout } = await this.executeScript('dockerCompose', [siteName, 'ps', '-a']);
+            const { stdout } = await execAsync('docker ps -a --format json');
+            // Split by newline and parse each JSON object
+            return stdout.trim().split('\n')
+                .filter(line => line.trim())
+                .map(line => JSON.parse(line));
+        } catch (error) {
+            console.error('Error getting docker containers:', error);
+            throw new Error('Failed to get docker containers status');
+        }
+    }
+
+    async getServiceStatuses(siteName) {
+        try {
+            const containers = await this.getDockerContainers();
             
             // Initialize default statuses
             const statuses = {
@@ -267,68 +280,42 @@ class Commands {
                 webserver: 'Disabled'
             };
 
-            // Skip header lines
-            const lines = stdout.split('\n').slice(2);
-            
-            for (const line of lines) {
-                if (!line.trim()) continue;
+            // Filter containers for this site
+            const siteContainers = containers.filter(container => {
+                const labels = container.Labels.split(',').reduce((acc, label) => {
+                    const [key, value] = label.split('=');
+                    acc[key] = value;
+                    return acc;
+                }, {});
                 
-                // Split by whitespace and get relevant columns
-                const parts = line.trim().split(/\s\s+/);
-                const containerName = parts[0];
-                const state = parts[2]; // State is usually the second-to-last column
+                return labels['com.docker.compose.project.working_dir'] === `/apps/wp-hosting/${siteName}`;
+            });
 
-                // Extract service name from container name
-                const serviceName = containerName.split('_')[1];
+            // Map container states to service statuses
+            for (const container of siteContainers) {
+                let serviceName = null;
                 
-                // Map service names to our standard names
-                const serviceMap = {
-                    backup: 'backup',
-                    db: 'database',
-                    phpmyadmin: 'phpmyadmin',
-                    sftp: 'sftp',
-                    wordpress: 'webserver'
-                };
+                // Determine service type from container name
+                if (container.Names.includes('_wordpress_')) serviceName = 'webserver';
+                else if (container.Names.includes('_db_')) serviceName = 'database';
+                else if (container.Names.includes('_backup_')) serviceName = 'backup';
+                else if (container.Names.includes('_phpmyadmin_')) serviceName = 'phpmyadmin';
+                else if (container.Names.includes('_sftp_')) serviceName = 'sftp';
 
-                const standardName = serviceMap[serviceName];
-                if (standardName) {
+                if (serviceName) {
                     // Map Docker states to our standard states
-                    let status = 'Unknown';
-                    if (state.toLowerCase() === 'up') {
-                        status = 'Up';
-                    } else if (state.toLowerCase().includes('exited')) {
-                        status = 'Down';
-                    } else if (state) {
-                        status = state;
+                    if (container.State === 'running') {
+                        statuses[serviceName] = 'Up';
+                    } else if (container.State === 'exited') {
+                        statuses[serviceName] = 'Down';
+                    } else {
+                        statuses[serviceName] = container.State;
                     }
-                    
-                    statuses[standardName] = status;
                 }
             }
 
             return statuses;
         } catch (error) {
-            // Check if error is about missing container and we haven't retried too many times
-            if (error.stderr?.includes('No such container:') && retryCount < 3) {
-                console.log(`Container not found, retrying (attempt ${retryCount + 1})...`);
-                // Wait a short time before retrying
-                await new Promise(resolve => setTimeout(resolve, 500));
-                return this.getServiceStatuses(siteName, retryCount + 1);
-            }
-
-            // If we've retried too many times or it's a different error, return default statuses
-            if (error.stderr?.includes('No such container:')) {
-                console.log('Container not found after retries, returning default statuses');
-                return {
-                    backup: 'Down',
-                    database: 'Down',
-                    phpmyadmin: 'Down',
-                    sftp: 'Down',
-                    webserver: 'Down'
-                };
-            }
-
-            // For other errors, throw normally
             console.error('Error getting service statuses:', error);
             throw new Error('Failed to get service statuses');
         }

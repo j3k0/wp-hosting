@@ -152,22 +152,42 @@ export const Templates = {
                             <thead>
                                 <tr>
                                     <th>Website</th>
-                                    <th class="w-1 text-end">Usage</th>
-                                    <th class="w-1">Actions</th>
+                                    <th class="w-1 text-center">Web</th>
+                                    <th class="w-1 text-center">DB</th>
+                                    <th class="w-1 text-center">Usage</th>
+                                    <th class="w-1 text-center">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {{#each sites}}
                                 <tr>
-                                    <td colspan="2" style="cursor: pointer" onclick="window.router.navigate('/websites/{{../customerId}}/info/{{siteName}}')">
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <div class="d-flex align-items-center">
-                                                <i class="ti ti-world me-2"></i>
-                                                <span class="text-muted">{{siteName}}</span>
-                                            </div>
-                                            <span class="text-muted">{{usage}}</span>
+                                    <td style="cursor: pointer" onclick="window.router.navigate('/websites/{{../customerId}}/info/{{siteName}}')">
+                                        <div class="d-flex align-items-center">
+                                            <i class="ti ti-world me-2"></i>
+                                            <span class="text-muted">{{siteName}}</span>
                                         </div>
                                     </td>
+                                    <td>
+                                        {{#with (serviceStatus 'Web' services.webserver)}}
+                                            <span class="status-indicator status-{{statusColor}}"
+                                                  title="Web: {{status}}">
+                                                <span class="status-indicator-circle"></span>
+                                                <span class="status-indicator-circle"></span>
+                                                <span class="status-indicator-circle"></span>
+                                            </span>
+                                        {{/with}}
+                                    </td>
+                                    <td>
+                                        {{#with (serviceStatus 'DB' services.database)}}
+                                            <span class="status-indicator status-{{statusColor}}"
+                                                  title="Database: {{status}}">
+                                                <span class="status-indicator-circle"></span>
+                                                <span class="status-indicator-circle"></span>
+                                                <span class="status-indicator-circle"></span>
+                                            </span>
+                                        {{/with}}
+                                    </td>
+                                    <td class="text-end">{{usage}}</td>
                                     <td>
                                         <div class="btn-list flex-nowrap">
                                             <a href="/websites/{{../customerId}}/logs/{{siteName}}" 

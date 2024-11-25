@@ -113,7 +113,8 @@ export const Handlers = {
 
         const sites = response.sites.map(site => ({
             siteName: site.name.split('.').slice(2).join('.'),
-            usage: formatBytes(site.usage)
+            usage: formatBytes(site.usage),
+            services: site.services
         }));
 
         render(Templates.websites, { 
