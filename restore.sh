@@ -6,13 +6,17 @@ cd "$(dirname "$0")"
 if [ "x$2" = "x" ]; then
     echo "Usage: $0 <project> <date>"
     echo
-    echo "<date>: The timestamp of the backup to restore, in the format yyyyMMdd."
+    echo "<date>: The timestamp of the backup to restore, in the format yyyyMMdd-HHmmss."
     listBackups $PROJECT
-    exit 1
+    exit 0
 fi
 
-if [ ! -e /backups/$PROJECT/backup_$2.tar.gz ]; then
-    echo "Backup not found: /backups/$PROJECT/backup_$2.tar.gz"
+# Extract just the date part for the backup file name
+BACKUP_DATE="${2%%-*}"
+BACKUP_FILE="/backups/$PROJECT/backup_$2.tar.gz"
+
+if [ ! -e "$BACKUP_FILE" ]; then
+    echo "Backup not found: $BACKUP_FILE"
     listBackups $PROJECT
     exit 1
 fi
