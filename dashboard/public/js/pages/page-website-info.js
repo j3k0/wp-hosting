@@ -2,7 +2,7 @@ import { API } from '../modules/api.js';
 import { render } from '../main.js';
 import { ServiceStatusCard } from '../components/service-status.js';
 import { showConfirmation, Notifications, showError, handleAPIRequest } from '../modules/utils.js';
-import { RestoreBackupModal } from '../components/modals/restore-backup.js';
+import { RestoreBackupModal } from '../modals/restore-backup.js';
 
 const template = Handlebars.compile(`
     <div class="page-header d-print-none">
@@ -509,88 +509,17 @@ const handler = async ({ data }) => {
     const restoreBtn = document.getElementById('restoreBackup');
     if (restoreBtn) {
         restoreBtn.addEventListener('click', async () => {
-            try {
-                // Load backups
-                const response = await API.get(`websites/${fullSiteName}/backups`);
-                const { backups } = response;
-                
-                if (!backups.length) {
-                    Notifications.warning('No backups available');
-                    return;
+            await RestoreBackupModal.show(fullSiteName, {
+                handleServiceAction: (action, buttonId, loadingText) => {
+                    return handleServiceAction(
+                        action,
+                        buttonId,
+                        loadingText,
+                        refreshServices,
+                        setActionButtonsState
+                    );
                 }
-
-                // Show modal with backups
-                const modalHtml = RestoreBackupModal.template({ backups });
-                document.body.insertAdjacentHTML('beforeend', modalHtml);
-                
-                const modalElement = document.getElementById('restoreBackupModal');
-                const modal = new bootstrap.Modal(modalElement);
-                const backupSelect = document.getElementById('backupSelect');
-                const restoreWarning = document.getElementById('restoreWarning');
-                const confirmBtn = document.getElementById('confirmRestore');
-                const confirmInput = document.getElementById('restoreConfirmation');
-                const sizeInfo = document.getElementById('backupSizeInfo');
-                
-                backupSelect.addEventListener('change', async () => {
-                    const selectedBackup = backupSelect.value;
-                    const selectedIndex = backupSelect.selectedIndex;
-                    
-                    // Show loading indicator
-                    restoreWarning.style.display = 'block';
-                    const warningMessage = restoreWarning.querySelector('.warning-message');
-                    const confirmMessage = restoreWarning.querySelector('.confirm-message');
-                    sizeInfo.innerHTML = '<i class="ti ti-loader ti-spin"></i> Calculating size...';
-                    
-                    try {
-                        // Get backup size
-                        const sizeData = await API.getBackupSize(fullSiteName, selectedBackup);
-                        
-                        // Update size info and warning messages
-                        sizeInfo.textContent = `Total size: ${sizeData.formatted}`;
-                        warningMessage.textContent = 
-                            `Restoring this backup will take time. The operation will process ${backups.length - selectedIndex} backup files.`;
-                        confirmMessage.textContent = 
-                            `To confirm, please type "RESTORE FROM ${selectedBackup}" below:`;
-                    } catch (error) {
-                        console.error('Error getting backup size:', error);
-                        sizeInfo.innerHTML = '<i class="ti ti-alert-triangle text-warning"></i> Failed to calculate size';
-                    }
-                    
-                    // Reset confirmation
-                    confirmInput.value = '';
-                    confirmBtn.disabled = true;
-                });
-                
-                confirmInput.addEventListener('input', () => {
-                    const selectedBackup = backupSelect.value;
-                    const expectedText = `RESTORE FROM ${selectedBackup}`;
-                    confirmBtn.disabled = confirmInput.value.toUpperCase() !== expectedText.toUpperCase();
-                });
-                
-                confirmBtn.addEventListener('click', async () => {
-                    try {
-                        const selectedBackup = backupSelect.value;
-                        modal.hide();
-                        handleServiceAction(
-                            async () => { API.restoreBackup(fullSiteName, selectedBackup); },
-                            'restoreBackup',
-                            'Restoring Backup...',
-                            refreshServices,
-                            setActionButtonsState
-                        );
-                    } catch (error) {
-                        showError(error, 'Failed to restore backup');
-                    }
-                });
-                
-                modalElement.addEventListener('hidden.bs.modal', () => {
-                    modalElement.remove();
-                });
-                
-                modal.show();
-            } catch (error) {
-                showError(error, 'Failed to load backups');
-            }
+            });
         });
     }
 
