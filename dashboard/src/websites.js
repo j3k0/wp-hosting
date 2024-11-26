@@ -258,7 +258,88 @@ const websites = {
             console.error('Error starting backup:', error);
             res.status(500).json({ error: 'Failed to start backup' });
         }
+    },
+
+    async listBackups(req, res) {
+        try {
+            const siteName = req.params.siteName;
+            const userClientId = req.user.clientId;
+            const isAdmin = req.user.isAdmin;
+
+            // Verify access rights
+            if (!isAdmin && !siteName.startsWith(`wp.${userClientId}.`)) {
+                return res.status(403).json({ 
+                    error: 'Access denied: You can only view backups of your own websites'
+                });
+            }
+
+            const backups = await commands.listBackups(siteName);
+            res.json({ backups });
+        } catch (error) {
+            console.error('Error listing backups:', error);
+            res.status(500).json({ error: 'Failed to list backups' });
+        }
+    },
+
+    async restoreBackup(req, res) {
+        try {
+            const siteName = req.params.siteName;
+            const { backupDate } = req.body;
+            const userClientId = req.user.clientId;
+            const isAdmin = req.user.isAdmin;
+
+            if (!isAdmin && !siteName.startsWith(`wp.${userClientId}.`)) {
+                return res.status(403).json({ 
+                    error: 'Access denied: You can only restore backups of your own websites'
+                });
+            }
+
+            await commands.restoreBackup(siteName, backupDate);
+            res.json({ message: 'Backup restore started successfully' });
+        } catch (error) {
+            console.error('Error restoring backup:', error);
+            res.status(500).json({ error: 'Failed to restore backup' });
+        }
+    },
+
+    async getBackupSize(req, res) {
+        try {
+            const siteName = req.params.siteName;
+            const { backupDate } = req.query;
+            const userClientId = req.user.clientId;
+            const isAdmin = req.user.isAdmin;
+
+            // Verify access rights
+            if (!isAdmin && !siteName.startsWith(`wp.${userClientId}.`)) {
+                return res.status(403).json({ 
+                    error: 'Access denied: You can only access your own website backups'
+                });
+            }
+
+            if (!backupDate) {
+                return res.status(400).json({
+                    error: 'Backup date is required'
+                });
+            }
+
+            const sizeInBytes = await commands.getBackupSize(siteName, backupDate);
+            res.json({ 
+                size: sizeInBytes,
+                formatted: formatBytes(sizeInBytes)
+            });
+        } catch (error) {
+            console.error('Error getting backup size:', error);
+            res.status(500).json({ error: 'Failed to get backup size' });
+        }
     }
 };
+
+function formatBytes(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
 
 module.exports = websites; 

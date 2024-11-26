@@ -74,5 +74,13 @@ export const API = {
 
     async startBackup(siteName) {
         return this.post(`websites/${siteName}/backup`);
+    },
+
+    async restoreBackup(siteName, backupDate) {
+        return this.post(`websites/${siteName}/restore`, { backupDate });
+    },
+
+    async getBackupSize(siteName, backupDate) {
+        return this.get(`websites/${siteName}/backups/size?backupDate=${backupDate}`);
     }
 }; 

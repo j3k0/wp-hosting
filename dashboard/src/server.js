@@ -55,6 +55,9 @@ app.post('/api/websites/:siteName/start', auth.authenticate, websites.startWebsi
 app.post('/api/websites/:siteName/enable', auth.authenticate, websites.enableWebsite);
 app.post('/api/websites/:siteName/disable', auth.authenticate, websites.disableWebsite);
 app.post('/api/websites/:siteName/backup', auth.authenticate, websites.startBackup);
+app.get('/api/websites/:siteName/backups', auth.authenticate, websites.listBackups);
+app.post('/api/websites/:siteName/restore', auth.authenticate, websites.restoreBackup);
+app.get('/api/websites/:siteName/backups/size', auth.authenticate, websites.getBackupSize);
 
 // User routes
 app.get('/api/users', auth.authenticateAdmin, auth.listUsers);

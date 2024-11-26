@@ -209,6 +209,7 @@ export const Handlers = {
                 }
 
                 // Update button states based on new service status
+                const backupInProgress = info.services.backup.startsWith('In Progress');
                 const allDisabled = Object.values(info.services).every(status => status === 'Disabled');
                 const allUp = Object.values(info.services).every(status => status === 'Up');
                 const allDown = Object.values(info.services).every(status => status === 'Down' || status === 'Disabled');
@@ -216,11 +217,15 @@ export const Handlers = {
                 const startBtn = document.getElementById('startWebsite');
                 const stopBtn = document.getElementById('stopWebsite');
                 const restartBtn = document.getElementById('restartWebsite');
+                const createBackupBtn = document.getElementById('startBackup');
+                const restoreBackupBtn = document.getElementById('restoreBackup');
 
-                if (startBtn) startBtn.disabled = allUp || allDisabled;
-                if (stopBtn) stopBtn.disabled = allDown || allDisabled;
-                if (restartBtn) restartBtn.disabled = allDisabled;
-                
+                if (startBtn) startBtn.disabled = allUp || allDisabled || backupInProgress;
+                if (stopBtn) stopBtn.disabled = allDown || allDisabled || backupInProgress;
+                if (restartBtn) restartBtn.disabled = allDisabled || backupInProgress;
+                if (createBackupBtn) createBackupBtn.disabled = allDisabled || allDown || backupInProgress;
+                if (restoreBackupBtn) restoreBackupBtn.disabled = allDisabled || allDown || backupInProgress;
+
                 return info.services;
             } catch (error) {
                 showError(error, 'Failed to refresh services status');
@@ -236,6 +241,7 @@ export const Handlers = {
                 setActionButtonsState(true);
                 button.innerHTML = `<i class="ti ti-loader ti-spin me-2"></i>${loadingText}`;
                 
+                setTimeout(() => refreshServices(), 1000);
                 await action();
                 
                 // For enable/disable actions, reload the page
@@ -263,14 +269,22 @@ export const Handlers = {
                         if (allStable || retryCount >= maxRetries) {
                             clearInterval(refreshInterval);
                             setActionButtonsState(false);
+                            button.innerHTML = originalHtml;
                         }
                     } catch (error) {
                         clearInterval(refreshInterval);
                         setActionButtonsState(false);
+                        button.innerHTML = originalHtml;
                     }
                 }, 2000);
                 
-                Notifications.success(`Website ${buttonId.replace('Website', '').toLowerCase()}ed successfully`);
+                if (buttonId === 'startBackup') {
+                    Notifications.success(`Backup started successfully`);
+                } else if (buttonId === 'restoreBackup') {
+                    Notifications.success(`Restoring backup, please wait...`);
+                } else {
+                    Notifications.success(`Website ${buttonId.replace('Website', '').toLowerCase()}ed successfully`);
+                }
             } catch (error) {
                 showError(error, `Failed to ${buttonId.replace('Website', '')} website`);
                 button.innerHTML = originalHtml;
@@ -310,6 +324,9 @@ export const Handlers = {
 
         console.log('Template data being rendered:', templateData);
         render(Templates.websiteInfo, templateData);
+
+        // Add this line to initialize button states immediately after render
+        await refreshServices();
 
         // Add refresh button handler
         const refreshBtn = document.getElementById('refreshServices');
@@ -436,72 +453,123 @@ export const Handlers = {
             });
         }
 
-        // Add backup button handler
-        const backupBtn = document.getElementById('startBackup');
-        if (backupBtn) {
-            backupBtn.addEventListener('click', async () => {
-                const confirmed = await showConfirmation({
-                    type: 'info',
-                    icon: 'archive',
-                    title: 'Start Backup?',
-                    message: 'This will create a new backup of the website.',
-                    confirmText: 'Start Backup'
-                });
-
-                if (confirmed) {
-                    try {
-                        backupBtn.disabled = true;
-                        backupBtn.innerHTML = '<i class="ti ti-loader ti-spin me-2"></i>Starting backup...';
-                        
-                        await API.startBackup(fullSiteName);
-                        Notifications.success('Backup started successfully');
-
-                        // Start polling for backup status
-                        const checkBackupStatus = async () => {
-                            try {
-                                const info = await API.get(`websites/${fullSiteName}/info`);
-                                const backupStatus = info.services?.backup;
-                                
-                                // Update services container
-                                const servicesContainer = document.getElementById('servicesContainer');
-                                if (servicesContainer) {
-                                    const servicesHtml = Object.entries({
-                                        'Webserver': info.services.webserver,
-                                        'Database': info.services.database,
-                                        'phpMyAdmin': info.services.phpmyadmin,
-                                        'SFTP': info.services.sftp,
-                                        'Backup': info.services.backup
-                                    }).map(([name, status]) => {
-                                        return Templates.serviceStatusCard(getServiceStatusData(name, status));
-                                    }).join('');
-                                    
-                                    servicesContainer.innerHTML = servicesHtml;
-                                }
-
-                                // Continue polling if backup is in progress
-                                if (backupStatus === 'In Progress...') {
-                                    setTimeout(checkBackupStatus, 5000); // Check every 5 seconds
-                                } else {
-                                    backupBtn.disabled = false;
-                                    backupBtn.innerHTML = '<i class="ti ti-archive me-2"></i>Backup';
-                                    if (backupStatus === 'Up') {
-                                        Notifications.success('Backup completed successfully');
-                                    }
-                                }
-                            } catch (error) {
-                                console.error('Error checking backup status:', error);
-                                backupBtn.disabled = false;
-                                backupBtn.innerHTML = '<i class="ti ti-archive me-2"></i>Backup';
-                            }
-                        };
-
-                        // Start the polling
-                        setTimeout(checkBackupStatus, 2000);
-                    } catch (error) {
-                        showError(error, 'Failed to start backup');
-                        backupBtn.disabled = false;
-                        backupBtn.innerHTML = '<i class="ti ti-archive me-2"></i>Backup';
+        // Add restore backup button handler
+        const restoreBtn = document.getElementById('restoreBackup');
+        if (restoreBtn) {
+            restoreBtn.addEventListener('click', async () => {
+                try {
+                    // Load backups
+                    const response = await API.get(`websites/${fullSiteName}/backups`);
+                    const { backups } = response;
+                    
+                    if (!backups.length) {
+                        Notifications.warning('No backups available');
+                        return;
                     }
+
+                    // Show modal with backups
+                    const modalHtml = Templates.restoreBackupModal({ backups });
+                    document.body.insertAdjacentHTML('beforeend', modalHtml);
+                    
+                    const modalElement = document.getElementById('restoreBackupModal');
+                    const modal = new bootstrap.Modal(modalElement);
+                    const backupSelect = document.getElementById('backupSelect');
+                    const restoreWarning = document.getElementById('restoreWarning');
+                    const confirmBtn = document.getElementById('confirmRestore');
+                    const confirmInput = document.getElementById('restoreConfirmation');
+                    const sizeInfo = document.getElementById('backupSizeInfo');
+                    
+                    backupSelect.addEventListener('change', async () => {
+                        const selectedBackup = backupSelect.value;
+                        const selectedIndex = backupSelect.selectedIndex;
+                        
+                        // Show loading indicator
+                        restoreWarning.style.display = 'block';
+                        const warningMessage = restoreWarning.querySelector('.warning-message');
+                        const confirmMessage = restoreWarning.querySelector('.confirm-message');
+                        sizeInfo.innerHTML = '<i class="ti ti-loader ti-spin"></i> Calculating size...';
+                        
+                        try {
+                            // Get backup size
+                            const sizeData = await API.getBackupSize(fullSiteName, selectedBackup);
+                            
+                            // Update size info and warning messages
+                            sizeInfo.textContent = `Total size: ${sizeData.formatted}`;
+                            warningMessage.textContent = 
+                                `Restoring this backup will take time. The operation will process ${backups.length - selectedIndex} backup files.`;
+                            confirmMessage.textContent = 
+                                `To confirm, please type "RESTORE FROM ${selectedBackup}" below:`;
+                        } catch (error) {
+                            console.error('Error getting backup size:', error);
+                            sizeInfo.innerHTML = '<i class="ti ti-alert-triangle text-warning"></i> Failed to calculate size';
+                        }
+                        
+                        // Reset confirmation
+                        confirmInput.value = '';
+                        confirmBtn.disabled = true;
+                    });
+                    
+                    confirmInput.addEventListener('input', () => {
+                        const selectedBackup = backupSelect.value;
+                        const expectedText = `RESTORE FROM ${selectedBackup}`;
+                        confirmBtn.disabled = confirmInput.value.toUpperCase() !== expectedText.toUpperCase();
+                    });
+                    
+                    confirmBtn.addEventListener('click', async () => {
+                        try {
+                            const selectedBackup = backupSelect.value;
+                            modal.hide();
+                            handleServiceAction(
+                                async () => { API.restoreBackup(fullSiteName, selectedBackup); },
+                                'restoreBackup',
+                                'Restoring Backup...'
+                            );
+                        } catch (error) {
+                            showError(error, 'Failed to restore backup');
+                        }
+                    });
+                    
+                    modalElement.addEventListener('hidden.bs.modal', () => {
+                        modalElement.remove();
+                    });
+                    
+                    modal.show();
+                } catch (error) {
+                    showError(error, 'Failed to load backups');
+                }
+            });
+        }
+
+        // Add this handler for the Create Backup button
+        const startBackupBtn = document.getElementById('startBackup');
+        if (startBackupBtn) {
+            startBackupBtn.addEventListener('click', async () => {
+                try {
+                    const confirmed = await showConfirmation({
+                        type: 'primary',
+                        icon: 'archive',
+                        title: 'Create Backup?',
+                        message: 'This will create a new backup of your website.',
+                        confirmText: 'Create Backup'
+                    });
+
+                    if (confirmed) {
+
+                        // Refresh services status after a delay
+                        // setTimeout(() => refreshServices(), 2000);
+                        // await API.startBackup(fullSiteName);
+                        handleServiceAction(
+                            async () => { API.startBackup(fullSiteName); },
+                            'startBackup',
+                            'Creating Backup...'
+                        );
+                        // Notifications.success('Backup started successfully');
+
+                        // Refresh services status after a delay
+                        // setTimeout(() => refreshServices(), 2000);
+                    }
+                } catch (error) {
+                    showError(error, 'Failed to start backup');
                 }
             });
         }

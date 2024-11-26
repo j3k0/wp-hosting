@@ -376,9 +376,12 @@ class Commands {
     async isBackupInProgress(siteName) {
         try {
             const { stdout } = await execAsync(`docker exec ${siteName}_backup_1 ps aux`);
+            console.log(`Checking backup status for ${siteName}:`, stdout);
             // If we see backup, tar, or mysqldump processes, a backup is in progress
             return stdout.includes('/usr/bin/backup') || 
-                   stdout.includes('tar --exclude') ||
+                   stdout.includes('tar ') ||
+                   stdout.includes('gzip ') ||
+                   stdout.includes('/usr/bin/restore ') ||
                    stdout.includes('mysqldump');
         } catch (error) {
             console.error('Error checking backup status:', error);
@@ -394,6 +397,84 @@ class Commands {
         } catch (error) {
             console.error('Error starting backup:', error);
             throw new Error('Failed to start backup: ' + error.message);
+        }
+    }
+
+    async listBackups(siteName) {
+        try {
+            // Call restore.sh with just the site name to get the list
+            const { stdout, stderr } = await this.executeScript('restore', [siteName]);
+            
+            // Parse the output to extract backup dates
+            const backups = [];
+            const lines = stdout.split('\n');
+            let foundBackups = false;
+            
+            for (const line of lines) {
+                // Skip lines until we find "Available backups:"
+                if (line.trim() === 'Available backups:') {
+                    foundBackups = true;
+                    continue;
+                }
+                
+                // Stop when we hit an empty line after finding backups
+                if (foundBackups && line.trim() === '') {
+                    break;
+                }
+                
+                // Add backup dates to array
+                if (foundBackups) {
+                    const backup = line.trim();
+                    if (backup.match(/^\d{8}-\d{6}$/)) {  // Format: YYYYMMDD-HHMMSS
+                        backups.push(backup);
+                    }
+                }
+            }
+
+            // If we didn't find any backups section, the command probably failed
+            if (!foundBackups) {
+                console.error('No backup section found in output:', stdout);
+                if (stderr) console.error('stderr:', stderr);
+                throw new Error('Failed to parse backup list');
+            }
+
+            backups.reverse();
+            
+            return backups;
+        } catch (error) {
+            console.error('Error listing backups:', error);
+            // Include more details in the error message
+            throw new Error(`Failed to list backups: ${error.message}`);
+        }
+    }
+
+    async restoreBackup(siteName, backupDate) {
+        try {
+            // Send the full backup date without truncating
+            const { stdout } = await this.executeScript('restore', [siteName, backupDate]);
+            return stdout;
+        } catch (error) {
+            console.error('Error restoring backup:', error);
+            throw new Error('Failed to restore backup: ' + error.message);
+        }
+    }
+
+    async getBackupSize(siteName, backupDate) {
+        try {
+            // Build the command to calculate total size
+            const command = `du -cb $(find /backups/${siteName} -type f | sort | grep -B1000000 ${backupDate}) | tail -1 | awk '{print $1}'`;
+            const { stdout } = await execAsync(command);
+            
+            // Parse the output as integer (bytes)
+            const sizeInBytes = parseInt(stdout.trim(), 10);
+            if (isNaN(sizeInBytes)) {
+                throw new Error('Invalid size calculation result');
+            }
+            
+            return sizeInBytes;
+        } catch (error) {
+            console.error('Error calculating backup size:', error);
+            throw new Error('Failed to calculate backup size');
         }
     }
 }
