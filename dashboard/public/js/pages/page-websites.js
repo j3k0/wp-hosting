@@ -1,6 +1,5 @@
 import { API } from '../modules/api.js';
 import { render } from '../main.js';
-import { ServiceStatusCard } from '../components/service-status.js';
 import { showConfirmation, Notifications, formatBytes, showError, handleAPIRequest } from '../modules/utils.js';
 
 const template = Handlebars.compile(`

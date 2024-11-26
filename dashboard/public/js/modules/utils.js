@@ -1,4 +1,4 @@
-import { ConfirmModal } from '../modals/confirm.js';
+import { ConfirmModal } from '../modals/modal-confirm.js';
 
 export const Notifications = {
     show(message, type = 'success') {

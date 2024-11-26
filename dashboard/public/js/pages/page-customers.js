@@ -1,6 +1,6 @@
 import { API } from '../modules/api.js';
 import { render } from '../main.js';
-import { Notifications, showError, handleAPIRequest } from '../modules/utils.js';
+import { handleAPIRequest } from '../modules/utils.js';
 
 const template = Handlebars.compile(`
     <div class="page-header d-print-none">

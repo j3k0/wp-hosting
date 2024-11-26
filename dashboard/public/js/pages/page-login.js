@@ -1,6 +1,6 @@
 import { API } from '../modules/api.js';
 import { render } from '../main.js';
-import { Notifications, showError } from '../modules/utils.js';
+import { showError } from '../modules/utils.js';
 
 // Template for the login page
 const template = Handlebars.compile(`

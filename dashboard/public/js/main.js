@@ -1,5 +1,4 @@
 import { API } from './modules/api.js';
-import { Layout } from './components/layout.js';
 import { Handlers } from './modules/router.js';
 import './modules/handlebars-helpers.js';  // Just import to register helpers
 

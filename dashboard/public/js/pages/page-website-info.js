@@ -2,7 +2,7 @@ import { API } from '../modules/api.js';
 import { render } from '../main.js';
 import { ServiceStatusCard } from '../components/service-status.js';
 import { showConfirmation, Notifications, showError, handleAPIRequest } from '../modules/utils.js';
-import { RestoreBackupModal } from '../modals/restore-backup.js';
+import { RestoreBackupModal } from '../modals/modal-restore-backup.js';
 
 const template = Handlebars.compile(`
     <div class="page-header d-print-none">
