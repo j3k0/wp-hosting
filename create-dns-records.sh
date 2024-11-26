@@ -7,8 +7,8 @@ PHPMYADMIN_HOSTS=`test -e $PROJECT/nginx-site && cat $PROJECT/nginx-site | grep 
 
 ./cfcli.sh --type CNAME add "${PROJECT}.${BACKEND_DOMAIN}" "${PUBLIC_HOSTNAME}" || true
 for I in $PHPMYADMIN_HOSTS; do
-	if echo "$I" | grep "${BACKEND_DOMAIN}.ggs.ovh\$"; then
-		DOM="$(echo "$I" | sed 's/.ggs.ovh//')"
+	if echo "$I" | grep "${BACKEND_DOMAIN}.${BACKEND_DOMAIN}\$"; then
+		DOM="$(echo "$I" | sed "s/.${BACKEND_DOMAIN}//")"
 		./cfcli.sh --type CNAME add "${DOM}" "${PUBLIC_HOSTNAME}" || true
 	fi
 done
