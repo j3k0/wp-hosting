@@ -119,4 +119,26 @@ export const showConfirmation = (options) => {
 
         modal.show();
     });
+};
+
+export const formatBytes = (bytes) => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+};
+
+export const showError = (error, context) => {
+    console.error(`${context}:`, error);
+    Notifications.error(`${context}: ${error.message}`);
+};
+
+export const handleAPIRequest = async (apiCall, errorContext) => {
+    try {
+        return await apiCall();
+    } catch (error) {
+        showError(error, errorContext);
+        throw error;
+    }
 }; 
