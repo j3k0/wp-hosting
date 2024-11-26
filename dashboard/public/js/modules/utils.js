@@ -1,4 +1,4 @@
-import { Templates } from './templates.js';
+import { ConfirmModal } from '../components/modals/confirm.js';
 
 export const Notifications = {
     show(message, type = 'success') {
@@ -93,7 +93,7 @@ export const showConfirmation = (options) => {
             existingModal.remove();
         }
 
-        const modalHtml = Templates.confirmModal({
+        const modalHtml = ConfirmModal.template({
             type: options.type || 'danger',
             icon: options.icon || 'alert-triangle',
             title: options.title || 'Are you sure?',

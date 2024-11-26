@@ -1,6 +1,7 @@
 import { API } from './modules/api.js';
-import { Templates } from './modules/templates.js';
-import { Handlers } from './modules/handlers.js';
+import { Layout } from './components/layout.js';
+import { Handlers } from './modules/router.js';
+import './modules/handlebars-helpers.js';  // Just import to register helpers
 
 // Initialize router and make it globally available
 window.router = new Navigo('/', { 
@@ -47,11 +48,8 @@ function updateHeaderVisibility() {
 
 // Render helper
 export function render(template, data = {}) {
-    // Render content
     app.innerHTML = template(data);
-    // Update header visibility
     updateHeaderVisibility();
-    // Update Navigo's data-navigo handling after content change
     window.router.updatePageLinks();
 }
 

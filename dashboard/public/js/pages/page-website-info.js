@@ -2,7 +2,7 @@ import { API } from '../modules/api.js';
 import { render } from '../main.js';
 import { ServiceStatusCard } from '../components/service-status.js';
 import { showConfirmation, Notifications, showError, handleAPIRequest } from '../modules/utils.js';
-import { Templates } from '../modules/templates.js';
+import { RestoreBackupModal } from '../components/modals/restore-backup.js';
 
 const template = Handlebars.compile(`
     <div class="page-header d-print-none">
@@ -520,7 +520,7 @@ const handler = async ({ data }) => {
                 }
 
                 // Show modal with backups
-                const modalHtml = Templates.restoreBackupModal({ backups });
+                const modalHtml = RestoreBackupModal.template({ backups });
                 document.body.insertAdjacentHTML('beforeend', modalHtml);
                 
                 const modalElement = document.getElementById('restoreBackupModal');
