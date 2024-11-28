@@ -13,10 +13,41 @@ const app = express();
 const port = process.env.PORT || 3000;
 const bindAddress = process.env.BIND_ADDRESS || '0.0.0.0';
 
+// Request logging middleware
+const logRequest = (req, res, next) => {
+    // Log request
+    const requestLog = {
+        timestamp: new Date().toISOString(),
+        method: req.method,
+        url: req.url,
+        headers: req.headers,
+        body: req.body,
+        ip: req.ip
+    };
+    console.log('Request:', JSON.stringify(requestLog, null, 2));
+
+    // Capture and log response
+    const originalSend = res.send;
+    res.send = function(body) {
+        const responseLog = {
+            timestamp: new Date().toISOString(),
+            statusCode: res.statusCode,
+            headers: res.getHeaders(),
+            body: body
+        };
+        console.log('Response:', JSON.stringify(responseLog, null, 2));
+        
+        return originalSend.call(this, body);
+    };
+
+    next();
+};
+
 // Middleware
 app.use(express.json());
 app.use(express.static('public'));
 app.use(cookieParser());
+app.use(logRequest);  // Add logging middleware
 
 // Add error handling middleware
 const errorHandler = (err, req, res, next) => {
@@ -34,7 +65,7 @@ const asyncHandler = (fn) => (req, res, next) => {
 // Auth routes
 app.post('/api/login', asyncHandler(auth.login));
 app.post('/api/logout', asyncHandler(auth.logout));
-app.post('/api/users', auth.authenticateAdmin, asyncHandler(auth.createUser));
+app.post('/api/users', auth.authenticateTeamAdmin, asyncHandler(auth.createUser));
 
 // Website routes
 app.get('/api/websites', auth.authenticate, websites.listWebsites);
@@ -44,7 +75,9 @@ app.get('/api/user', auth.authenticate, (req, res) => {
     res.json({
         username: req.user.username,
         isAdmin: req.user.isAdmin,
+        isTeamAdmin: req.user.isTeamAdmin,
         clientId: req.user.clientId,
+        groupId: req.user.groupId
     });
 });
 app.get('/api/websites/:siteName/info', auth.authenticate, websites.getWebsiteInfo);
@@ -60,9 +93,17 @@ app.post('/api/websites/:siteName/restore', auth.authenticate, websites.restoreB
 app.get('/api/websites/:siteName/backups/size', auth.authenticate, websites.getBackupSize);
 
 // User routes
-app.get('/api/users', auth.authenticateAdmin, auth.listUsers);
+app.get('/api/users', auth.authenticateTeamAdmin, auth.listUsers);
 app.post('/api/users/:username/reset-password', auth.authenticateAdmin, auth.resetPassword);
 app.delete('/api/users/:username', auth.authenticateAdmin, auth.deleteUser);
+app.put('/api/users/:username/role', auth.authenticateAdmin, asyncHandler(auth.updateUserRole));
+app.put('/api/users/:username/group', auth.authenticateTeamAdmin, asyncHandler(auth.updateUserGroup));
+
+// Group routes
+app.post('/api/groups', auth.authenticateTeamAdmin, asyncHandler(auth.createGroup));
+app.get('/api/groups', auth.authenticate, asyncHandler(auth.listGroups));
+app.put('/api/groups/:groupId', auth.authenticateTeamAdmin, asyncHandler(auth.updateGroup));
+app.delete('/api/groups/:groupId', auth.authenticateTeamAdmin, asyncHandler(auth.deleteGroup));
 
 // Serve the frontend - must be last route
 app.get('*', (req, res) => {

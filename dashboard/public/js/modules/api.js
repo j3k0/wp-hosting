@@ -46,6 +46,13 @@ export const API = {
         });
     },
 
+    async put(endpoint, data) {
+        return this.fetchAPI(endpoint, {
+            method: 'PUT',
+            body: JSON.stringify(data)
+        });
+    },
+
     async delete(endpoint) {
         return this.fetchAPI(endpoint, {
             method: 'DELETE'

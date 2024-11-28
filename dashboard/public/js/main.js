@@ -1,5 +1,6 @@
 import { API } from './modules/api.js';
 import { Handlers } from './modules/router.js';
+import { Layout } from './components/layout.js';
 import './modules/handlebars-helpers.js';  // Just import to register helpers
 
 // Initialize router and make it globally available
@@ -16,7 +17,13 @@ window.userData = null;
 
 // Header management
 function updateHeaderVisibility() {
+    // Only proceed if we have rendered content
+    if (!app.firstChild) return;
+
     const header = document.getElementById('header');
+    // If header is not found, it means the layout hasn't been rendered yet
+    if (!header) return;
+
     const adminElements = document.querySelectorAll('.admin-only');
     const clientElements = document.querySelectorAll('.client-only');
     
@@ -34,9 +41,11 @@ function updateHeaderVisibility() {
             el.classList.toggle('d-none', window.userData.isAdmin);
         });
 
-        // Debug log
+        // Debug log with all permissions
         console.log('Header visibility updated:', {
             isAdmin: window.userData.isAdmin,
+            isTeamAdmin: window.userData.isTeamAdmin,
+            canManageUsers: window.userData.isAdmin || window.userData.isTeamAdmin,
             adminElements: adminElements.length,
             clientElements: clientElements.length
         });
@@ -47,7 +56,23 @@ function updateHeaderVisibility() {
 
 // Render helper
 export function render(template, data = {}) {
-    app.innerHTML = template(data);
+    const userData = window.userData || {};
+    const templateData = {
+        ...data,
+        canManageUsers: userData.isAdmin || userData.isTeamAdmin,
+        userData  // Pass the full userData to templates
+    };
+    
+    // First render the page content with the template
+    const content = template(templateData);
+    
+    // Then render the layout with the content
+    const layoutData = {
+        content,
+        canManageUsers: templateData.canManageUsers
+    };
+    app.innerHTML = Layout.template(layoutData);
+    
     updateHeaderVisibility();
     window.router.updatePageLinks();
 }
