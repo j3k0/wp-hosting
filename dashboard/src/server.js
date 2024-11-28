@@ -151,14 +151,33 @@ app.post('/api/account/password', auth.authenticate, async (req, res) => {
 app.get('/api/websites', auth.authenticate, websites.listWebsites);
 app.get('/api/customers', auth.authenticateAdmin, websites.listCustomers);
 app.get('/api/websites/:customerId', auth.authenticate, websites.listWebsites);
-app.get('/api/user', auth.authenticate, (req, res) => {
-    res.json({
-        username: req.user.username,
-        isAdmin: req.user.isAdmin,
-        isTeamAdmin: req.user.isTeamAdmin,
-        clientId: req.user.clientId,
-        groupId: req.user.groupId
-    });
+app.get('/api/user', auth.authenticate, async (req, res) => {
+    try {
+        // Get group name if user has a group
+        let groupName = null;
+        if (req.user.groupId) {
+            const groups = await auth.getGroups();
+            groupName = groups[req.user.groupId]?.name;
+        }
+
+        res.json({
+            username: req.user.username,
+            isAdmin: req.user.isAdmin,
+            isTeamAdmin: req.user.isTeamAdmin,
+            clientId: req.user.clientId,
+            groupId: req.user.groupId,
+            groupName: groupName
+        });
+    } catch (error) {
+        logger.error('Failed to get user info', {
+            error: {
+                message: error.message,
+                stack: error.stack
+            },
+            username: req.user.username
+        });
+        res.status(500).json({ error: 'Failed to get user information' });
+    }
 });
 app.get('/api/websites/:siteName/info', auth.authenticate, websites.getWebsiteInfo);
 app.get('/api/websites/:siteName/logs', auth.authenticate, websites.getWebsiteLogs);

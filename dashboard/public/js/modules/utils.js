@@ -171,4 +171,34 @@ export function generatePassword() {
     
     // Shuffle the password
     return password.split('').sort(() => Math.random() - 0.5).join('');
+}
+
+/**
+ * Validates a username
+ * @param {string} username - The username to validate
+ * @returns {boolean} True if valid, false otherwise
+ */
+export function isValidUsername(username) {
+    return /^[a-z0-9._-]+$/.test(username);
+}
+
+/**
+ * Formats a username for display
+ * @param {string} username - The raw username
+ * @returns {string} Formatted username for display
+ */
+export function formatDisplayUsername(username) {
+    // Replace underscores with spaces
+    let formatted = username.replace(/_/g, ' ');
+    
+    // Capitalize first letter and letters after dots and dashes
+    formatted = formatted
+        .split(/([.-])/)
+        .map(part => {
+            if (part === '.' || part === '-') return part;
+            return part.charAt(0).toUpperCase() + part.slice(1);
+        })
+        .join('');
+
+    return formatted;
 } 

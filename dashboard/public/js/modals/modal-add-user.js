@@ -1,6 +1,6 @@
 import { API } from '../modules/api.js';
 import { UserGroupSelect } from '../components/user-group.js';
-import { generatePassword } from '../modules/utils.js';
+import { generatePassword, isValidUsername } from '../modules/utils.js';
 
 export const AddUserModal = {
     template: Handlebars.compile(`
@@ -15,7 +15,10 @@ export const AddUserModal = {
                         <div class="modal-body">
                             <div class="mb-3">
                                 <label class="form-label">Username</label>
-                                <input type="text" class="form-control" name="username" required>
+                                <input type="text" class="form-control" name="username" required 
+                                       pattern="[a-z0-9._-]+" 
+                                       title="Username must contain only lowercase letters, numbers, dots, dashes and underscores">
+                                <small class="form-hint">Only lowercase letters, numbers, dots, dashes and underscores are allowed</small>
                             </div>
                             {{#if userData.isAdmin}}
                             <div class="mb-3">
@@ -125,17 +128,35 @@ export const AddUserModal = {
                 passwordInput.value = generatePassword();
             });
             
+            // Add input validation
+            const usernameInput = form.querySelector('input[name="username"]');
+            usernameInput.addEventListener('input', (e) => {
+                const value = e.target.value.toLowerCase();
+                e.target.value = value;
+                
+                if (!isValidUsername(value)) {
+                    e.target.setCustomValidity('Username must contain only lowercase letters, numbers, dots, dashes and underscores');
+                } else {
+                    e.target.setCustomValidity('');
+                }
+            });
+            
             return new Promise((resolve) => {
                 form.addEventListener('submit', async (e) => {
                     e.preventDefault();
                     form.classList.add('was-submitted');
                     const formData = new FormData(form);
                     
+                    const username = formData.get('username').toLowerCase();
+                    if (!isValidUsername(username)) {
+                        return;
+                    }
+
                     // Parse the group selection
                     const groupSelection = UserGroupSelect.parseSelection(formData.get('userGroup'));
 
                     const result = {
-                        username: formData.get('username'),
+                        username: username,
                         password: formData.get('password'),
                         isTeamAdmin: groupSelection.isTeamAdmin,
                         groupId: groupSelection.groupId,

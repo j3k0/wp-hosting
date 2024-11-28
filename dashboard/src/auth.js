@@ -14,6 +14,10 @@ if (!JWT_SECRET) {
 const USERS_FILE = path.join(__dirname, '../config/users.json');
 const GROUPS_FILE = path.join(__dirname, '../config/groups.json');
 
+function isValidUsername(username) {
+    return /^[a-z0-9._-]+$/.test(username);
+}
+
 async function getUsers() {
     try {
         const data = await fs.readFile(USERS_FILE, 'utf8');
@@ -163,25 +167,28 @@ async function addGroupInfoToRequest(req) {
 }
 
 const auth = {
+    getGroups,
+    getUsers,
     async login(req, res) {
         const { username, password } = req.body;
+        const normalizedUsername = username.toLowerCase();
         
         try {
             const users = await getUsers();
             
-            if (!users[username]) {
+            if (!users[normalizedUsername]) {
                 logger.warn('Login attempt with invalid username', {
-                    username,
+                    username: normalizedUsername,
                     ip: req.ip
                 });
                 return res.status(401).json({ error: 'Invalid credentials' });
             }
 
-            const validPassword = await bcrypt.compare(password, users[username].password);
+            const validPassword = await bcrypt.compare(password, users[normalizedUsername].password);
             
             if (!validPassword) {
                 logger.warn('Login attempt with invalid password', {
-                    username,
+                    username: normalizedUsername,
                     ip: req.ip
                 });
                 return res.status(401).json({ error: 'Invalid credentials' });
@@ -189,11 +196,11 @@ const auth = {
 
             const token = jwt.sign(
                 { 
-                    username,
-                    isAdmin: users[username].is_admin,
-                    isTeamAdmin: users[username].is_team_admin,
-                    clientId: users[username].client_id,
-                    groupId: users[username].group_id
+                    username: normalizedUsername,
+                    isAdmin: users[normalizedUsername].is_admin,
+                    isTeamAdmin: users[normalizedUsername].is_team_admin,
+                    clientId: users[normalizedUsername].client_id,
+                    groupId: users[normalizedUsername].group_id
                 },
                 JWT_SECRET,
                 {
@@ -203,20 +210,20 @@ const auth = {
             );
 
             logger.info('User logged in successfully', {
-                username,
+                username: normalizedUsername,
                 ip: req.ip,
-                isAdmin: users[username].is_admin,
-                isTeamAdmin: users[username].is_team_admin,
-                clientId: users[username].client_id
+                isAdmin: users[normalizedUsername].is_admin,
+                isTeamAdmin: users[normalizedUsername].is_team_admin,
+                clientId: users[normalizedUsername].client_id
             });
 
             res.cookie('token', token, { httpOnly: true, secure: true });
             res.json({ 
-                username,
-                isAdmin: users[username].is_admin,
-                isTeamAdmin: users[username].is_team_admin,
-                clientId: users[username].client_id,
-                groupId: users[username].group_id
+                username: normalizedUsername,
+                isAdmin: users[normalizedUsername].is_admin,
+                isTeamAdmin: users[normalizedUsername].is_team_admin,
+                clientId: users[normalizedUsername].client_id,
+                groupId: users[normalizedUsername].group_id
             });
         } catch (error) {
             console.error('Login error:', error);
@@ -225,42 +232,79 @@ const auth = {
     },
 
     async createUser(req, res) {
-        const { username, password, isTeamAdmin, groupId, clientId } = req.body;
-        const users = await getUsers();
-
-        if (users[username]) {
-            return res.status(400).json({ error: 'User already exists' });
-        }
-
-        if (!req.user.isAdmin && !req.user.isTeamAdmin) {
-            return res.status(403).json({ error: 'Access denied' });
-        }
-
-        const actualClientId = req.user.isAdmin ? clientId : req.user.clientId;
-
-        if (groupId) {
-            const groups = await getGroups();
-            if (!groups[groupId]) {
-                return res.status(400).json({ error: 'Invalid group ID' });
-            }
-            if (groups[groupId].client_id !== actualClientId) {
+        try {
+            const { username, password, isTeamAdmin, groupId, clientId } = req.body;
+            
+            // Convert username to lowercase and validate
+            const normalizedUsername = username.toLowerCase();
+            
+            if (!isValidUsername(normalizedUsername)) {
+                logger.warn('Invalid username format attempted', {
+                    username: normalizedUsername,
+                    requestedBy: req.user.username
+                });
                 return res.status(400).json({ 
-                    error: 'Group does not belong to this client' 
+                    error: 'Username must contain only lowercase letters, numbers, dots, dashes and underscores'
                 });
             }
+
+            const users = await getUsers();
+
+            if (users[normalizedUsername]) {
+                logger.warn('Attempted to create duplicate user', {
+                    username: normalizedUsername,
+                    requestedBy: req.user.username
+                });
+                return res.status(400).json({ error: 'User already exists' });
+            }
+
+            if (!req.user.isAdmin && !req.user.isTeamAdmin) {
+                return res.status(403).json({ error: 'Access denied' });
+            }
+
+            const actualClientId = req.user.isAdmin ? clientId : req.user.clientId;
+
+            if (groupId) {
+                const groups = await getGroups();
+                if (!groups[groupId]) {
+                    return res.status(400).json({ error: 'Invalid group ID' });
+                }
+                if (groups[groupId].client_id !== actualClientId) {
+                    return res.status(400).json({ 
+                        error: 'Group does not belong to this client' 
+                    });
+                }
+            }
+
+            const hashedPassword = await bcrypt.hash(password, 10);
+            users[normalizedUsername] = {
+                password: hashedPassword,
+                is_admin: false,
+                is_team_admin: isTeamAdmin || false,
+                client_id: actualClientId,
+                group_id: groupId || null
+            };
+
+            await saveUsers(users);
+            
+            logger.info('User created successfully', {
+                username: normalizedUsername,
+                isTeamAdmin,
+                clientId: actualClientId,
+                createdBy: req.user.username
+            });
+
+            res.json({ message: 'User created successfully' });
+        } catch (error) {
+            logger.error('Failed to create user', {
+                error: {
+                    message: error.message,
+                    stack: error.stack
+                },
+                requestedBy: req.user.username
+            });
+            res.status(500).json({ error: 'Failed to create user' });
         }
-
-        const hashedPassword = await bcrypt.hash(password, 10);
-        users[username] = {
-            password: hashedPassword,
-            is_admin: false,
-            is_team_admin: isTeamAdmin || false,
-            client_id: actualClientId,
-            group_id: groupId || null
-        };
-
-        await saveUsers(users);
-        res.json({ message: 'User created successfully' });
     },
 
     async authenticate(req, res, next) {
