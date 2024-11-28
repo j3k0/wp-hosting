@@ -18,7 +18,7 @@ export const ConfirmModal = {
                                     </button>
                                 </div>
                                 <div class="col">
-                                    <button type="button" class="btn btn-{{type}} w-100" id="confirmModalAction">
+                                    <button type="button" class="btn btn-{{type}} w-100" id="confirmModalAction" {{#if verificationText}}disabled{{/if}}>
                                         {{confirmText}}
                                     </button>
                                 </div>
@@ -28,5 +28,18 @@ export const ConfirmModal = {
                 </div>
             </div>
         </div>
-    `)
+    `),
+
+    setupVerification(modalElement, verificationText) {
+        if (!verificationText) return;
+
+        const confirmBtn = modalElement.querySelector('#confirmModalAction');
+        const input = modalElement.querySelector('#deleteConfirmation');
+        
+        if (input) {
+            input.addEventListener('input', (e) => {
+                confirmBtn.disabled = e.target.value !== verificationText;
+            });
+        }
+    }
 }; 

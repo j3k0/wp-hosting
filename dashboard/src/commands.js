@@ -1,8 +1,10 @@
 const { exec } = require('child_process');
 const util = require('util');
 const path = require('path');
+const { logger } = require('./utils/logger');
 const execAsync = util.promisify(exec);
 const Convert = require('ansi-to-html');
+const { formatBytes } = require('./utils/formatBytes');
 
 // Path to the wp-hosting scripts directory
 const SCRIPTS_DIR = path.join(__dirname, '../../');
@@ -20,6 +22,7 @@ class Commands {
             logs_database: path.join(SCRIPTS_DIR, 'logs_db.sh'),
             dockerCompose: path.join(SCRIPTS_DIR, 'docker-compose.sh'),
             disable: path.join(SCRIPTS_DIR, 'disable.sh'),
+            delete: path.join(SCRIPTS_DIR, 'delete.sh'),
         };
 
         // Initialize ANSI converter with options
@@ -41,22 +44,38 @@ class Commands {
     async executeScript(scriptName, args = []) {
         const scriptPath = this.scripts[scriptName];
         if (!scriptPath) {
+            logger.error('Script not found', {
+                scriptName,
+                availableScripts: Object.keys(this.scripts)
+            });
             throw new Error(`Script "${scriptName}" not found`);
         }
 
         const command = `${scriptPath} ${args.join(' ')}`;
-        // console.log(`Executing command: ${command}`);
+        logger.debug('Executing command', {
+            scriptName,
+            command,
+            args
+        });
         
         try {
             const result = await execAsync(command);
-            // console.log(`Command output:`, result.stdout);
+            logger.debug('Command executed successfully', {
+                scriptName,
+                stdout: result.stdout.substring(0, 1000), // Limit log size
+                outputLength: result.stdout.length
+            });
             return result;
         } catch (error) {
-            console.error(`Error executing ${scriptName}:`, {
-                error: error.message,
+            logger.error('Command execution failed', {
+                scriptName,
                 command,
-                stdout: error.stdout,
-                stderr: error.stderr
+                error: {
+                    message: error.message,
+                    code: error.code,
+                    stdout: error.stdout?.substring(0, 1000),
+                    stderr: error.stderr?.substring(0, 1000)
+                }
             });
             throw error;
         }
@@ -69,10 +88,24 @@ class Commands {
      */
     async listWebsites(args = []) {
         try {
+            logger.info('Listing websites', { args });
             const { stdout } = await this.executeScript('ls', args);
-            return stdout.trim().split('\n').filter(Boolean);
+            const websites = stdout.trim().split('\n').filter(Boolean);
+            logger.debug('Websites listed successfully', {
+                count: websites.length,
+                websites: websites.length > 10 ? 
+                    websites.slice(0, 10).concat(['...']) : 
+                    websites
+            });
+            return websites;
         } catch (error) {
-            console.error('Error listing websites:', error);
+            logger.error('Failed to list websites', {
+                args,
+                error: {
+                    message: error.message,
+                    code: error.code
+                }
+            });
             throw new Error('Failed to list websites');
         }
     }
@@ -83,6 +116,7 @@ class Commands {
      */
     async listCustomers() {
         try {
+            logger.info('Listing customers');
             const sites = await this.listWebsites();
             const customers = [...new Set(sites
                 .map(site => {
@@ -90,9 +124,21 @@ class Commands {
                     return parts.length >= 2 ? parts[1] : null;
                 })
                 .filter(Boolean))];
+
+            logger.debug('Customers listed successfully', {
+                customerCount: customers.length,
+                customers
+            });
+
             return customers;
         } catch (error) {
-            console.error('Error listing customers:', error);
+            logger.error('Failed to list customers', {
+                error: {
+                    message: error.message,
+                    code: error.code,
+                    stack: error.stack
+                }
+            });
             throw new Error('Failed to list customers');
         }
     }
@@ -103,7 +149,7 @@ class Commands {
      * @returns {Promise<Object>} Parsed website information
      */
     async getWebsiteInfo(siteName) {
-        console.log(`Getting info for website: ${siteName}`);
+        logger.info('Getting website info', { siteName });
         try {
             const [infoOutput, statuses] = await Promise.all([
                 this.executeScript('info', [siteName]),
@@ -111,12 +157,24 @@ class Commands {
             ]);
             
             const parsedInfo = this.parseInfoOutput(infoOutput.stdout);
+            logger.debug('Website info retrieved', {
+                siteName,
+                hasUrls: parsedInfo.urls?.length > 0,
+                hasPhpMyAdmin: !!parsedInfo.phpmyadmin?.url,
+                services: statuses
+            });
             return {
                 ...parsedInfo,
                 services: statuses
             };
         } catch (error) {
-            console.error('Error getting website info:', error);
+            logger.error('Failed to get website info', {
+                siteName,
+                error: {
+                    message: error.message,
+                    code: error.code
+                }
+            });
             throw new Error('Failed to get website information');
         }
     }
@@ -128,7 +186,10 @@ class Commands {
      * @returns {Object} Parsed information and raw output
      */
     parseInfoOutput(output) {
-        console.log('Starting to parse info output:', output);
+        logger.debug('Starting to parse info output', {
+            outputLength: output.length
+        });
+
         const info = {
             urls: [],
             phpmyadmin: {
@@ -149,7 +210,9 @@ class Commands {
 
         let currentSection = null;
         const lines = output.split('\n');
-        console.log('Number of lines to parse:', lines.length);
+        logger.debug('Parsing info output lines', {
+            lineCount: lines.length
+        });
 
         for (const line of lines) {
             if (line.includes('** State **')) {
@@ -159,20 +222,23 @@ class Commands {
                 currentSection = 'urls';
             }
             else if (line.includes('** phpMyAdmin **')) {
-                console.log('Found phpMyAdmin section');
+                logger.debug('Found phpMyAdmin section');
                 currentSection = 'phpmyadmin';
             }
             else if (line.includes('** SFTP **')) {
-                console.log('Found SFTP section');
+                logger.debug('Found SFTP section');
                 currentSection = 'sftp';
             }
             else if (line.includes('** DNS **')) {
-                console.log('Found DNS section');
+                logger.debug('Found DNS section');
                 currentSection = 'dns';
             }
             else if (line.trim().startsWith('- http')) {
                 const url = line.trim().replace('- ', '');
-                console.log('Found URL:', url, 'in section:', currentSection);
+                logger.debug('Found URL', {
+                    url,
+                    section: currentSection
+                });
                 if (currentSection === 'urls') {
                     info.urls.push(url);
                 } else if (currentSection === 'phpmyadmin') {
@@ -181,45 +247,47 @@ class Commands {
             }
             else if (line.includes('phpMyAdmin Username:')) {
                 info.phpmyadmin.username = line.split(':')[1].trim();
-                console.log('Found phpMyAdmin username:', info.phpmyadmin.username);
+                logger.debug('Found phpMyAdmin username');
             }
             else if (line.includes('phpMyAdmin Password:')) {
                 info.phpmyadmin.password = line.split(':')[1].trim();
-                console.log('Found phpMyAdmin password');
+                logger.debug('Found phpMyAdmin password');
             }
             else if (line.includes('SFTP Host:')) {
                 info.sftp.host = line.split(':')[1].trim();
-                console.log('Found SFTP host:', info.sftp.host);
+                logger.debug('Found SFTP host');
             }
             else if (line.includes('SFTP Port:')) {
                 info.sftp.port = line.split(':')[1].trim();
-                console.log('Found SFTP port:', info.sftp.port);
+                logger.debug('Found SFTP port');
             }
             else if (line.includes('SFTP Username:')) {
                 info.sftp.username = line.split(':')[1].trim();
-                console.log('Found SFTP username:', info.sftp.username);
+                logger.debug('Found SFTP username');
             }
             else if (line.includes('SFTP Password:')) {
                 info.sftp.password = line.split(':')[1].trim();
-                console.log('Found SFTP password');
+                logger.debug('Found SFTP password');
             }
             else if (currentSection === 'dns' && line.trim() && !line.startsWith('```')) {
                 info.dns.push(line.trim());
-                console.log('Added DNS line:', line.trim());
+                logger.debug('Added DNS entry');
             }
             else if (currentSection === 'state') {
                 const state = line.trim();
                 if (state === 'disabled' || state === 'enabled') {
                     info.state = state;
+                    logger.debug('Found website state', { state });
                 }
             }
         }
 
-        console.log('Final parsed info structure:', {
+        logger.debug('Info parsing completed', {
             hasUrls: info.urls.length > 0,
             hasPhpMyAdmin: !!info.phpmyadmin.url,
             hasSftp: !!info.sftp.host,
-            hasDns: info.dns.length > 0
+            hasDns: info.dns.length > 0,
+            state: info.state
         });
 
         // Only return raw if no structured data was parsed
@@ -227,7 +295,7 @@ class Commands {
             !info.phpmyadmin.url && 
             !info.sftp.host && 
             info.dns.length === 0) {
-            console.log('No structured data found, returning raw output');
+            logger.warn('No structured data found in info output');
             return { raw: output };
         }
 
@@ -242,39 +310,84 @@ class Commands {
      */
     async getWordPressLogs(siteName, lines = 100) {
         try {
+            logger.info('Getting WordPress logs', {
+                siteName,
+                lines
+            });
+
             const { stdout } = await this.executeScript('logs', [siteName, `--tail=${lines}`]);
+            
+            logger.debug('WordPress logs retrieved', {
+                siteName,
+                outputLength: stdout.length
+            });
+
             return this.converter.toHtml(stdout);
         } catch (error) {
-            console.error('Error getting logs:', error);
+            logger.error('Failed to get WordPress logs', {
+                siteName,
+                lines,
+                error: {
+                    message: error.message,
+                    stack: error.stack
+                }
+            });
             throw new Error('Failed to get WordPress logs');
         }
     }
 
     async restartWebsite(siteName) {
         try {
+            logger.info('Restarting website', { siteName });
+
             const { stdout } = await this.executeScript('dockerCompose', [siteName, 'restart', 'wordpress', 'db']);
+            
+            logger.info('Website restarted successfully', {
+                siteName,
+                output: stdout.substring(0, 1000)
+            });
+
             return stdout;
         } catch (error) {
-            console.error('Error restarting website:', error);
+            logger.error('Failed to restart website', {
+                siteName,
+                error: {
+                    message: error.message,
+                    stack: error.stack
+                }
+            });
             throw new Error('Failed to restart website');
         }
     }
 
     async getDockerContainers() {
         try {
+            logger.info('Getting Docker containers status');
+
             const { stdout } = await execAsync('docker ps -a --format json');
-            // Split by newline and parse each JSON object
-            return stdout.trim().split('\n')
+            const containers = stdout.trim().split('\n')
                 .filter(line => line.trim())
                 .map(line => JSON.parse(line));
+
+            logger.debug('Docker containers retrieved', {
+                containerCount: containers.length
+            });
+
+            return containers;
         } catch (error) {
-            console.error('Error getting docker containers:', error);
+            logger.error('Failed to get Docker containers status', {
+                error: {
+                    message: error.message,
+                    stack: error.stack
+                }
+            });
             throw new Error('Failed to get docker containers status');
         }
     }
 
     async getServiceStatuses(siteName) {
         try {
+            logger.info('Getting service statuses', { siteName });
             const [containers, isBackupRunning] = await Promise.all([
                 this.getDockerContainers(),
                 this.isBackupInProgress(siteName.replace(/\./g, ''))
@@ -327,49 +440,116 @@ class Commands {
                 }
             }
 
+            logger.debug('Service statuses retrieved', {
+                siteName,
+                statuses,
+                containerCount: siteContainers.length
+            });
             return statuses;
         } catch (error) {
-            console.error('Error getting service statuses:', error);
+            logger.error('Failed to get service statuses', {
+                siteName,
+                error: {
+                    message: error.message,
+                    code: error.code
+                }
+            });
             throw new Error('Failed to get service statuses');
         }
     }
 
     async stopWebsite(siteName) {
         try {
+            logger.info('Stopping website', { siteName });
+
             const { stdout } = await this.executeScript('dockerCompose', [siteName, 'stop']);
+            
+            logger.info('Website stopped successfully', {
+                siteName,
+                output: stdout.substring(0, 1000)
+            });
+
             return stdout;
         } catch (error) {
-            console.error('Error stopping website:', error);
+            logger.error('Failed to stop website', {
+                siteName,
+                error: {
+                    message: error.message,
+                    stack: error.stack
+                }
+            });
             throw new Error('Failed to stop website');
         }
     }
 
     async startWebsite(siteName) {
         try {
+            logger.info('Starting website', { siteName });
+
             const { stdout } = await this.executeScript('dockerCompose', [siteName, 'up', '-d']);
+            
+            logger.info('Website started successfully', {
+                siteName,
+                output: stdout.substring(0, 1000)
+            });
+
             return stdout;
         } catch (error) {
-            console.error('Error starting website:', error);
+            logger.error('Failed to start website', {
+                siteName,
+                error: {
+                    message: error.message,
+                    stack: error.stack
+                }
+            });
             throw new Error('Failed to start website');
         }
     }
 
     async enableWebsite(siteName) {
         try {
+            logger.info('Enabling website', { siteName });
+
             const { stdout } = await this.executeScript('disable', [siteName, '--enable']);
+            
+            logger.info('Website enabled successfully', {
+                siteName,
+                output: stdout.substring(0, 1000)
+            });
+
             return stdout;
         } catch (error) {
-            console.error('Error enabling website:', error);
+            logger.error('Failed to enable website', {
+                siteName,
+                error: {
+                    message: error.message,
+                    stack: error.stack
+                }
+            });
             throw new Error('Failed to enable website');
         }
     }
 
     async disableWebsite(siteName) {
         try {
+            logger.info('Disabling website', { siteName });
+
             const { stdout } = await this.executeScript('disable', [siteName]);
+            
+            logger.info('Website disabled successfully', {
+                siteName,
+                output: stdout.substring(0, 1000)
+            });
+
             return stdout;
         } catch (error) {
-            console.error('Error disabling website:', error);
+            logger.error('Failed to disable website', {
+                siteName,
+                error: {
+                    message: error.message,
+                    stack: error.stack
+                }
+            });
             throw new Error('Failed to disable website');
         }
     }
@@ -377,32 +557,63 @@ class Commands {
     async isBackupInProgress(siteName) {
         try {
             const { stdout } = await execAsync(`docker exec ${siteName}_backup_1 ps aux`);
-            console.log(`Checking backup status for ${siteName}:`, stdout);
-            // If we see backup, tar, or mysqldump processes, a backup is in progress
-            return stdout.includes('/usr/bin/backup') || 
-                   stdout.includes('tar ') ||
-                   stdout.includes('gzip ') ||
-                   stdout.includes('/usr/bin/restore ') ||
-                   stdout.includes('mysqldump');
+            logger.debug('Checking backup status', {
+                siteName,
+                processOutput: stdout.substring(0, 1000)
+            });
+
+            const isRunning = stdout.includes('/usr/bin/backup') || 
+                            stdout.includes('tar ') ||
+                            stdout.includes('gzip ') ||
+                            stdout.includes('/usr/bin/restore ') ||
+                            stdout.includes('mysqldump');
+
+            logger.debug('Backup status checked', {
+                siteName,
+                isRunning
+            });
+
+            return isRunning;
         } catch (error) {
-            console.error('Error checking backup status:', error);
+            logger.error('Error checking backup status', {
+                siteName,
+                error: {
+                    message: error.message,
+                    code: error.code,
+                    stack: error.stack
+                }
+            });
             return false;
         }
     }
 
     async startBackup(siteName) {
         try {
-            // Execute backup script from wp-hosting root
+            logger.info('Starting website backup', { siteName });
+
             const { stdout } = await this.executeScript('backup', [siteName]);
+            
+            logger.info('Backup started successfully', {
+                siteName,
+                output: stdout.substring(0, 1000)
+            });
+
             return stdout;
         } catch (error) {
-            console.error('Error starting backup:', error);
+            logger.error('Failed to start backup', {
+                siteName,
+                error: {
+                    message: error.message,
+                    stack: error.stack
+                }
+            });
             throw new Error('Failed to start backup: ' + error.message);
         }
     }
 
     async listBackups(siteName) {
         try {
+            logger.info('Listing backups', { siteName });
             // Call restore.sh with just the site name to get the list
             const { stdout, stderr } = await this.executeScript('restore', [siteName]);
             
@@ -434,34 +645,74 @@ class Commands {
 
             // If we didn't find any backups section, the command probably failed
             if (!foundBackups) {
-                console.error('No backup section found in output:', stdout);
-                if (stderr) console.error('stderr:', stderr);
+                logger.warn('No backup section found in output', {
+                    siteName,
+                    stdout,
+                    stderr
+                });
                 throw new Error('Failed to parse backup list');
             }
 
             backups.reverse();
             
+            logger.info('Backups listed successfully', {
+                siteName,
+                backupCount: backups.length,
+                oldestBackup: backups[backups.length - 1],
+                newestBackup: backups[0]
+            });
+
             return backups;
         } catch (error) {
-            console.error('Error listing backups:', error);
-            // Include more details in the error message
+            logger.error('Failed to list backups', {
+                siteName,
+                error: {
+                    message: error.message,
+                    code: error.code,
+                    stack: error.stack
+                }
+            });
             throw new Error(`Failed to list backups: ${error.message}`);
         }
     }
 
     async restoreBackup(siteName, backupDate) {
         try {
-            // Send the full backup date without truncating
+            logger.info('Starting backup restore', {
+                siteName,
+                backupDate
+            });
+
             const { stdout } = await this.executeScript('restore', [siteName, backupDate]);
+            
+            logger.info('Backup restore initiated successfully', {
+                siteName,
+                backupDate,
+                output: stdout.substring(0, 1000)
+            });
+
             return stdout;
         } catch (error) {
-            console.error('Error restoring backup:', error);
+            logger.error('Failed to restore backup', {
+                siteName,
+                backupDate,
+                error: {
+                    message: error.message,
+                    code: error.code,
+                    stack: error.stack
+                }
+            });
             throw new Error('Failed to restore backup: ' + error.message);
         }
     }
 
     async getBackupSize(siteName, backupDate) {
         try {
+            logger.info('Calculating backup size', {
+                siteName,
+                backupDate
+            });
+
             // Build the command to calculate total size
             const command = `du -cb $(find /backups/${siteName} -type f | sort | grep -B1000000 ${backupDate}) | tail -1 | awk '{print $1}'`;
             const { stdout } = await execAsync(command);
@@ -472,22 +723,83 @@ class Commands {
                 throw new Error('Invalid size calculation result');
             }
             
+            logger.info('Backup size calculated successfully', {
+                siteName,
+                backupDate,
+                sizeInBytes,
+                formattedSize: formatBytes(sizeInBytes)
+            });
+
             return sizeInBytes;
         } catch (error) {
-            console.error('Error calculating backup size:', error);
+            logger.error('Failed to calculate backup size', {
+                siteName,
+                backupDate,
+                error: {
+                    message: error.message,
+                    code: error.code,
+                    stack: error.stack
+                }
+            });
             throw new Error('Failed to calculate backup size');
         }
     }
 
     async getWebsiteLogs(siteName, lines = 100, scriptName = 'logs_webserver.sh') {
         try {
+            logger.info('Fetching website logs', {
+                siteName,
+                lines,
+                scriptType: scriptName
+            });
+
             // Map the script name to the correct key
             const scriptKey = scriptName.replace('.sh', '');
             const { stdout } = await this.executeScript(scriptKey, [siteName, `--tail=${lines}`]);
+            
+            logger.debug('Logs retrieved successfully', {
+                siteName,
+                outputLength: stdout.length,
+                scriptType: scriptName
+            });
+
             return this.converter.toHtml(stdout);
         } catch (error) {
-            console.error('Error getting logs:', error);
+            logger.error('Failed to get logs', {
+                siteName,
+                scriptName,
+                error: {
+                    message: error.message,
+                    code: error.code,
+                    stack: error.stack
+                }
+            });
             throw new Error(`Failed to get ${scriptName} logs`);
+        }
+    }
+
+    async deleteWebsite(siteName) {
+        try {
+            logger.info('Website deletion initiated', { siteName });
+
+            const { stdout } = await execAsync(`sudo ${this.scripts.delete} ${siteName} -y`);
+            
+            logger.info('Website deleted successfully', {
+                siteName,
+                output: stdout.substring(0, 1000)
+            });
+
+            return stdout;
+        } catch (error) {
+            logger.error('Failed to delete website', {
+                siteName,
+                error: {
+                    message: error.message,
+                    code: error.code,
+                    stack: error.stack
+                }
+            });
+            throw new Error('Failed to delete website');
         }
     }
 }

@@ -89,5 +89,9 @@ export const API = {
 
     async getBackupSize(siteName, backupDate) {
         return this.get(`websites/${siteName}/backups/size?backupDate=${backupDate}`);
+    },
+
+    async deleteWebsite(siteName) {
+        return this.delete(`websites/${siteName}`);
     }
 }; 

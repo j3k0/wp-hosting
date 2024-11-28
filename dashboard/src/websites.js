@@ -1,5 +1,6 @@
 const commands = require('./commands');
 const diskUsage = require('./disk-usage');
+const { logger } = require('./utils/logger');
 
 const websites = {
     async listWebsites(req, res) {
@@ -10,8 +11,22 @@ const websites = {
             const isTeamAdmin = req.user.isTeamAdmin;
             const filter = req.query.filter || 'enabled';
 
+            logger.info('Listing websites', {
+                requestedClientId,
+                userClientId,
+                isAdmin,
+                isTeamAdmin,
+                filter,
+                userId: req.user.username
+            });
+
             // Si l'utilisateur n'est pas admin, il ne peut voir que ses propres sites
             if (!isAdmin && requestedClientId !== userClientId) {
+                logger.warn('Access denied: User attempting to view other client websites', {
+                    userId: req.user.username,
+                    requestedClientId,
+                    userClientId
+                });
                 return res.status(403).json({ 
                     error: 'Access denied: You can only view your own websites'
                 });
@@ -92,19 +107,50 @@ const websites = {
                 };
             }));
 
+            logger.info('Websites listed successfully', {
+                userId: req.user.username,
+                clientId: clientIdToUse,
+                siteCount: sitesWithInfo.length,
+                filter
+            });
+
             res.json({ sites: sitesWithInfo });
         } catch (error) {
-            console.error('Error listing websites:', error);
+            logger.error('Failed to list websites', {
+                error: {
+                    message: error.message,
+                    stack: error.stack
+                },
+                userId: req.user.username,
+                clientId: req.params.customerId
+            });
             res.status(500).json({ error: 'Failed to list websites' });
         }
     },
 
     async listCustomers(req, res) {
         try {
+            logger.info('Listing customers', {
+                requestedBy: req.user.username,
+                isAdmin: req.user.isAdmin
+            });
+
             const customers = await commands.listCustomers();
+
+            logger.debug('Customers listed successfully', {
+                customerCount: customers.length,
+                customers
+            });
+
             res.json({ customers });
         } catch (error) {
-            console.error('Error listing customers:', error);
+            logger.error('Failed to list customers', {
+                error: {
+                    message: error.message,
+                    stack: error.stack
+                },
+                requestedBy: req.user.username
+            });
             res.status(500).json({ error: 'Failed to list customers' });
         }
     },
@@ -115,6 +161,14 @@ const websites = {
             const userClientId = req.user.clientId;
             const isAdmin = req.user.isAdmin;
             const isTeamAdmin = req.user.isTeamAdmin;
+
+            logger.info('Getting website info', {
+                siteName,
+                userClientId,
+                isAdmin,
+                isTeamAdmin,
+                userId: req.user.username
+            });
 
             // Verify access rights
             if (!isAdmin && !siteName.startsWith(`wp.${userClientId}.`)) {
@@ -143,7 +197,14 @@ const websites = {
 
             res.json(info);
         } catch (error) {
-            console.error('Error getting website info:', error);
+            logger.error('Failed to get website info', {
+                error: {
+                    message: error.message,
+                    stack: error.stack
+                },
+                siteName: req.params.siteName,
+                userId: req.user.username
+            });
             res.status(500).json({ error: 'Failed to get website information' });
         }
     },
@@ -156,8 +217,22 @@ const websites = {
             const userClientId = req.user.clientId;
             const isAdmin = req.user.isAdmin;
 
+            logger.info('Getting website logs', {
+                siteName,
+                lines,
+                logType,
+                userClientId,
+                isAdmin,
+                requestedBy: req.user.username
+            });
+
             // Verify access rights
             if (!isAdmin && !siteName.startsWith(`wp.${userClientId}.`)) {
+                logger.warn('Unauthorized log access attempt', {
+                    siteName,
+                    userClientId,
+                    requestedBy: req.user.username
+                });
                 return res.status(403).json({ 
                     error: 'Access denied: You can only view your own websites'
                 });
@@ -166,9 +241,25 @@ const websites = {
             // Use the appropriate log script based on type
             const scriptName = logType === 'database' ? 'logs_database.sh' : 'logs_webserver.sh';
             const logs = await commands.getWebsiteLogs(siteName, lines, scriptName);
+
+            logger.debug('Website logs retrieved', {
+                siteName,
+                logType,
+                lines,
+                outputSize: logs.length
+            });
+
             res.json({ logs });
         } catch (error) {
-            console.error('Error getting website logs:', error);
+            logger.error('Failed to get website logs', {
+                error: {
+                    message: error.message,
+                    stack: error.stack
+                },
+                siteName: req.params.siteName,
+                logType: req.query.type,
+                requestedBy: req.user.username
+            });
             res.status(500).json({ error: 'Failed to get website logs' });
         }
     },
@@ -179,17 +270,42 @@ const websites = {
             const userClientId = req.user.clientId;
             const isAdmin = req.user.isAdmin;
 
+            logger.info('Website restart initiated', {
+                siteName,
+                userClientId,
+                isAdmin,
+                requestedBy: req.user.username
+            });
+
             // Verify access rights
             if (!isAdmin && !siteName.startsWith(`wp.${userClientId}.`)) {
+                logger.warn('Unauthorized website restart attempt', {
+                    siteName,
+                    userClientId,
+                    requestedBy: req.user.username
+                });
                 return res.status(403).json({ 
                     error: 'Access denied: You can only restart your own websites'
                 });
             }
 
             await commands.restartWebsite(siteName);
+
+            logger.info('Website restarted successfully', {
+                siteName,
+                requestedBy: req.user.username
+            });
+
             res.json({ message: 'Website restarted successfully' });
         } catch (error) {
-            console.error('Error restarting website:', error);
+            logger.error('Failed to restart website', {
+                error: {
+                    message: error.message,
+                    stack: error.stack
+                },
+                siteName: req.params.siteName,
+                requestedBy: req.user.username
+            });
             res.status(500).json({ error: 'Failed to restart website' });
         }
     },
@@ -200,17 +316,42 @@ const websites = {
             const userClientId = req.user.clientId;
             const isAdmin = req.user.isAdmin;
 
+            logger.info('Website stop initiated', {
+                siteName,
+                userClientId,
+                isAdmin,
+                requestedBy: req.user.username
+            });
+
             // Verify access rights
             if (!isAdmin && !siteName.startsWith(`wp.${userClientId}.`)) {
+                logger.warn('Unauthorized website stop attempt', {
+                    siteName,
+                    userClientId,
+                    requestedBy: req.user.username
+                });
                 return res.status(403).json({ 
                     error: 'Access denied: You can only stop your own websites'
                 });
             }
 
             await commands.stopWebsite(siteName);
+            
+            logger.info('Website stopped successfully', {
+                siteName,
+                requestedBy: req.user.username
+            });
+
             res.json({ message: 'Website stopped successfully' });
         } catch (error) {
-            console.error('Error stopping website:', error);
+            logger.error('Failed to stop website', {
+                error: {
+                    message: error.message,
+                    stack: error.stack
+                },
+                siteName: req.params.siteName,
+                requestedBy: req.user.username
+            });
             res.status(500).json({ error: 'Failed to stop website' });
         }
     },
@@ -221,17 +362,42 @@ const websites = {
             const userClientId = req.user.clientId;
             const isAdmin = req.user.isAdmin;
 
+            logger.info('Website start initiated', {
+                siteName,
+                userClientId,
+                isAdmin,
+                requestedBy: req.user.username
+            });
+
             // Verify access rights
             if (!isAdmin && !siteName.startsWith(`wp.${userClientId}.`)) {
+                logger.warn('Unauthorized website start attempt', {
+                    siteName,
+                    userClientId,
+                    requestedBy: req.user.username
+                });
                 return res.status(403).json({ 
                     error: 'Access denied: You can only start your own websites'
                 });
             }
 
             await commands.startWebsite(siteName);
+
+            logger.info('Website started successfully', {
+                siteName,
+                requestedBy: req.user.username
+            });
+
             res.json({ message: 'Website started successfully' });
         } catch (error) {
-            console.error('Error starting website:', error);
+            logger.error('Failed to start website', {
+                error: {
+                    message: error.message,
+                    stack: error.stack
+                },
+                siteName: req.params.siteName,
+                requestedBy: req.user.username
+            });
             res.status(500).json({ error: 'Failed to start website' });
         }
     },
@@ -242,16 +408,41 @@ const websites = {
             const userClientId = req.user.clientId;
             const isAdmin = req.user.isAdmin;
 
+            logger.info('Website enable initiated', {
+                siteName,
+                userClientId,
+                isAdmin,
+                requestedBy: req.user.username
+            });
+
             if (!isAdmin && !siteName.startsWith(`wp.${userClientId}.`)) {
+                logger.warn('Unauthorized website enable attempt', {
+                    siteName,
+                    userClientId,
+                    requestedBy: req.user.username
+                });
                 return res.status(403).json({ 
                     error: 'Access denied: You can only enable your own websites'
                 });
             }
 
             await commands.enableWebsite(siteName);
+
+            logger.info('Website enabled successfully', {
+                siteName,
+                requestedBy: req.user.username
+            });
+
             res.json({ message: 'Website enabled successfully' });
         } catch (error) {
-            console.error('Error enabling website:', error);
+            logger.error('Failed to enable website', {
+                error: {
+                    message: error.message,
+                    stack: error.stack
+                },
+                siteName: req.params.siteName,
+                requestedBy: req.user.username
+            });
             res.status(500).json({ error: 'Failed to enable website' });
         }
     },
@@ -262,16 +453,41 @@ const websites = {
             const userClientId = req.user.clientId;
             const isAdmin = req.user.isAdmin;
 
+            logger.info('Website disable initiated', {
+                siteName,
+                userClientId,
+                isAdmin,
+                requestedBy: req.user.username
+            });
+
             if (!isAdmin && !siteName.startsWith(`wp.${userClientId}.`)) {
+                logger.warn('Unauthorized website disable attempt', {
+                    siteName,
+                    userClientId,
+                    requestedBy: req.user.username
+                });
                 return res.status(403).json({ 
                     error: 'Access denied: You can only disable your own websites'
                 });
             }
 
             await commands.disableWebsite(siteName);
+
+            logger.info('Website disabled successfully', {
+                siteName,
+                requestedBy: req.user.username
+            });
+
             res.json({ message: 'Website disabled successfully' });
         } catch (error) {
-            console.error('Error disabling website:', error);
+            logger.error('Failed to disable website', {
+                error: {
+                    message: error.message,
+                    stack: error.stack
+                },
+                siteName: req.params.siteName,
+                requestedBy: req.user.username
+            });
             res.status(500).json({ error: 'Failed to disable website' });
         }
     },
@@ -282,16 +498,41 @@ const websites = {
             const userClientId = req.user.clientId;
             const isAdmin = req.user.isAdmin;
 
+            logger.info('Website backup initiated', {
+                siteName,
+                userClientId,
+                isAdmin,
+                requestedBy: req.user.username
+            });
+
             if (!isAdmin && !siteName.startsWith(`wp.${userClientId}.`)) {
+                logger.warn('Unauthorized backup attempt', {
+                    siteName,
+                    userClientId,
+                    requestedBy: req.user.username
+                });
                 return res.status(403).json({ 
                     error: 'Access denied: You can only backup your own websites'
                 });
             }
 
             await commands.startBackup(siteName);
+
+            logger.info('Backup started successfully', {
+                siteName,
+                requestedBy: req.user.username
+            });
+
             res.json({ message: 'Backup started successfully' });
         } catch (error) {
-            console.error('Error starting backup:', error);
+            logger.error('Failed to start backup', {
+                error: {
+                    message: error.message,
+                    stack: error.stack
+                },
+                siteName: req.params.siteName,
+                requestedBy: req.user.username
+            });
             res.status(500).json({ error: 'Failed to start backup' });
         }
     },
@@ -302,17 +543,43 @@ const websites = {
             const userClientId = req.user.clientId;
             const isAdmin = req.user.isAdmin;
 
+            logger.info('Listing backups', {
+                siteName,
+                userClientId,
+                isAdmin,
+                requestedBy: req.user.username
+            });
+
             // Verify access rights
             if (!isAdmin && !siteName.startsWith(`wp.${userClientId}.`)) {
+                logger.warn('Unauthorized backup listing attempt', {
+                    siteName,
+                    userClientId,
+                    requestedBy: req.user.username
+                });
                 return res.status(403).json({ 
                     error: 'Access denied: You can only view backups of your own websites'
                 });
             }
 
             const backups = await commands.listBackups(siteName);
+
+            logger.info('Backups listed successfully', {
+                siteName,
+                backupCount: backups.length,
+                requestedBy: req.user.username
+            });
+
             res.json({ backups });
         } catch (error) {
-            console.error('Error listing backups:', error);
+            logger.error('Failed to list backups', {
+                error: {
+                    message: error.message,
+                    stack: error.stack
+                },
+                siteName: req.params.siteName,
+                requestedBy: req.user.username
+            });
             res.status(500).json({ error: 'Failed to list backups' });
         }
     },
@@ -324,16 +591,45 @@ const websites = {
             const userClientId = req.user.clientId;
             const isAdmin = req.user.isAdmin;
 
+            logger.info('Backup restore initiated', {
+                siteName,
+                backupDate,
+                userClientId,
+                isAdmin,
+                requestedBy: req.user.username
+            });
+
             if (!isAdmin && !siteName.startsWith(`wp.${userClientId}.`)) {
+                logger.warn('Unauthorized backup restore attempt', {
+                    siteName,
+                    backupDate,
+                    userClientId,
+                    requestedBy: req.user.username
+                });
                 return res.status(403).json({ 
                     error: 'Access denied: You can only restore backups of your own websites'
                 });
             }
 
             await commands.restoreBackup(siteName, backupDate);
+
+            logger.info('Backup restore started successfully', {
+                siteName,
+                backupDate,
+                requestedBy: req.user.username
+            });
+
             res.json({ message: 'Backup restore started successfully' });
         } catch (error) {
-            console.error('Error restoring backup:', error);
+            logger.error('Failed to restore backup', {
+                error: {
+                    message: error.message,
+                    stack: error.stack
+                },
+                siteName: req.params.siteName,
+                backupDate: req.body.backupDate,
+                requestedBy: req.user.username
+            });
             res.status(500).json({ error: 'Failed to restore backup' });
         }
     },
@@ -345,27 +641,122 @@ const websites = {
             const userClientId = req.user.clientId;
             const isAdmin = req.user.isAdmin;
 
+            logger.info('Getting backup size', {
+                siteName,
+                backupDate,
+                userClientId,
+                isAdmin,
+                requestedBy: req.user.username
+            });
+
             // Verify access rights
             if (!isAdmin && !siteName.startsWith(`wp.${userClientId}.`)) {
+                logger.warn('Unauthorized backup size request', {
+                    siteName,
+                    backupDate,
+                    userClientId,
+                    requestedBy: req.user.username
+                });
                 return res.status(403).json({ 
                     error: 'Access denied: You can only access your own website backups'
                 });
             }
 
             if (!backupDate) {
+                logger.warn('Missing backup date in size request', {
+                    siteName,
+                    requestedBy: req.user.username
+                });
                 return res.status(400).json({
                     error: 'Backup date is required'
                 });
             }
 
             const sizeInBytes = await commands.getBackupSize(siteName, backupDate);
+
+            logger.info('Backup size retrieved successfully', {
+                siteName,
+                backupDate,
+                sizeInBytes,
+                formattedSize: formatBytes(sizeInBytes),
+                requestedBy: req.user.username
+            });
+
             res.json({ 
                 size: sizeInBytes,
                 formatted: formatBytes(sizeInBytes)
             });
         } catch (error) {
-            console.error('Error getting backup size:', error);
+            logger.error('Failed to get backup size', {
+                error: {
+                    message: error.message,
+                    stack: error.stack
+                },
+                siteName: req.params.siteName,
+                backupDate: req.query.backupDate,
+                requestedBy: req.user.username
+            });
             res.status(500).json({ error: 'Failed to get backup size' });
+        }
+    },
+
+    async deleteWebsite(req, res) {
+        try {
+            const siteName = req.params.siteName;
+            const userClientId = req.user.clientId;
+            const isAdmin = req.user.isAdmin;
+            const isTeamAdmin = req.user.isTeamAdmin;
+
+            logger.info('Website deletion initiated', {
+                siteName,
+                userClientId,
+                isAdmin,
+                isTeamAdmin,
+                requestedBy: req.user.username
+            });
+
+            // Only admins and team admins can delete sites
+            if (!isAdmin && !isTeamAdmin) {
+                logger.warn('Non-admin user attempted to delete website', {
+                    siteName,
+                    userClientId,
+                    requestedBy: req.user.username
+                });
+                return res.status(403).json({ 
+                    error: 'Access denied: Only admins can delete websites'
+                });
+            }
+
+            // Verify access rights
+            if (!isAdmin && !siteName.startsWith(`wp.${userClientId}.`)) {
+                logger.warn('Unauthorized website deletion attempt', {
+                    siteName,
+                    userClientId,
+                    requestedBy: req.user.username
+                });
+                return res.status(403).json({ 
+                    error: 'Access denied: You can only delete your own websites'
+                });
+            }
+
+            await commands.deleteWebsite(siteName);
+
+            logger.info('Website deleted successfully', {
+                siteName,
+                requestedBy: req.user.username
+            });
+
+            res.json({ message: 'Website deleted successfully' });
+        } catch (error) {
+            logger.error('Failed to delete website', {
+                error: {
+                    message: error.message,
+                    stack: error.stack
+                },
+                siteName: req.params.siteName,
+                requestedBy: req.user.username
+            });
+            res.status(500).json({ error: 'Failed to delete website' });
         }
     }
 };

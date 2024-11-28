@@ -18,7 +18,9 @@
         "https": "^1.0.0",
         "jsonwebtoken": "^8.5.1",
         "navigo": "^8.11.1",
-        "ansi-to-html": "^0.7.2"
+        "ansi-to-html": "^0.7.2",
+        "morgan": "^1.10.0",
+        "winston": "^3.8.2"
     },
     "devDependencies": {
         "nodemon": "^2.0.22"

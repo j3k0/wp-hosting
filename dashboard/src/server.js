@@ -6,6 +6,8 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const cookieParser = require('cookie-parser');
+const morgan = require('morgan');
+const { logger, stream } = require('./utils/logger');
 const auth = require('./auth');
 const websites = require('./websites');
 const bcrypt = require('bcryptjs');
@@ -14,29 +16,47 @@ const app = express();
 const port = process.env.PORT || 3000;
 const bindAddress = process.env.BIND_ADDRESS || '0.0.0.0';
 
-// Request logging middleware
+// Request logging middleware using Morgan with our custom stream
+app.use(morgan(
+    ':remote-addr - :remote-user [:date[clf]] ":method :url HTTP/:http-version" :status :res[content-length] ":referrer" ":user-agent" - :response-time ms',
+    { stream }
+));
+
+// Request context logging middleware
 const logRequest = (req, res, next) => {
-    // Log request
-    const requestLog = {
-        timestamp: new Date().toISOString(),
+    // Create request context
+    const requestContext = {
+        requestId: req.headers['x-request-id'] || Date.now().toString(),
         method: req.method,
         url: req.url,
         headers: req.headers,
         body: req.body,
-        ip: req.ip
+        ip: req.ip,
+        userId: req.user?.username || 'anonymous'
     };
-    console.log('Request:', JSON.stringify(requestLog, null, 2));
+
+    // Add request context to res.locals for access in other middleware/routes
+    res.locals.requestContext = requestContext;
+
+    // Log request
+    logger.info('Incoming request', { 
+        ...requestContext,
+        timestamp: new Date().toISOString()
+    });
 
     // Capture and log response
     const originalSend = res.send;
     res.send = function(body) {
-        const responseLog = {
-            timestamp: new Date().toISOString(),
+        const responseContext = {
+            ...requestContext,
             statusCode: res.statusCode,
-            headers: res.getHeaders(),
-            body: body
+            responseHeaders: res.getHeaders(),
+            responseTime: Date.now() - new Date(requestContext.timestamp),
+            responseSize: Buffer.byteLength(body)
         };
-        console.log('Response:', JSON.stringify(responseLog, null, 2));
+
+        // Log response
+        logger.info('Outgoing response', responseContext);
         
         return originalSend.call(this, body);
     };
@@ -44,19 +64,33 @@ const logRequest = (req, res, next) => {
     next();
 };
 
+// Error handling middleware (single declaration)
+const errorHandler = (err, req, res, next) => {
+    const errorContext = {
+        ...res.locals.requestContext,
+        error: {
+            message: err.message,
+            stack: err.stack,
+            code: err.code,
+            status: err.status || 500
+        }
+    };
+
+    logger.error('API Error', errorContext);
+
+    // Don't expose stack traces in production
+    const response = process.env.NODE_ENV === 'production' 
+        ? { error: err.message || 'Internal server error' }
+        : { error: err.message, stack: err.stack };
+
+    res.status(err.status || 500).json(response);
+};
+
 // Middleware
 app.use(express.json());
 app.use(express.static('public'));
 app.use(cookieParser());
 app.use(logRequest);  // Add logging middleware
-
-// Add error handling middleware
-const errorHandler = (err, req, res, next) => {
-    console.error('API Error:', err);
-    res.status(err.status || 500).json({
-        error: err.message || 'Internal server error'
-    });
-};
 
 // Add route handler wrapper
 const asyncHandler = (fn) => (req, res, next) => {
@@ -72,12 +106,21 @@ app.post('/api/account/password', auth.authenticate, async (req, res) => {
         const { currentPassword, newPassword } = req.body;
         const username = req.user.username;
         
+        logger.info('Password change initiated', {
+            username,
+            ip: req.ip
+        });
+
         const users = await auth.getUsers();
         const user = users[username];
         
         // Verify current password
         const validPassword = await bcrypt.compare(currentPassword, user.password);
         if (!validPassword) {
+            logger.warn('Password change failed - invalid current password', {
+                username,
+                ip: req.ip
+            });
             return res.status(401).json({ error: 'Current password is incorrect' });
         }
         
@@ -85,9 +128,21 @@ app.post('/api/account/password', auth.authenticate, async (req, res) => {
         user.password = await bcrypt.hash(newPassword, 10);
         await auth.saveUsers(users);
         
+        logger.info('Password changed successfully', {
+            username,
+            ip: req.ip
+        });
+
         res.json({ message: 'Password updated successfully' });
     } catch (error) {
-        console.error('Error updating password:', error);
+        logger.error('Failed to update password', {
+            error: {
+                message: error.message,
+                stack: error.stack
+            },
+            username: req.user.username,
+            ip: req.ip
+        });
         res.status(500).json({ error: 'Failed to update password' });
     }
 });
@@ -116,6 +171,7 @@ app.post('/api/websites/:siteName/backup', auth.authenticate, websites.startBack
 app.get('/api/websites/:siteName/backups', auth.authenticate, websites.listBackups);
 app.post('/api/websites/:siteName/restore', auth.authenticate, websites.restoreBackup);
 app.get('/api/websites/:siteName/backups/size', auth.authenticate, websites.getBackupSize);
+app.delete('/api/websites/:siteName', auth.authenticate, websites.deleteWebsite);
 
 // User routes
 app.get('/api/users', auth.authenticateTeamAdmin, auth.listUsers);
@@ -140,12 +196,40 @@ app.get('*', (req, res) => {
 // Add error handler last
 app.use(errorHandler);
 
-// HTTPS configuration
+// HTTPS configuration and server startup
 const httpsOptions = {
     key: fs.readFileSync('config/ssl/key.pem'),
     cert: fs.readFileSync('config/ssl/cert.pem')
 };
 
-https.createServer(httpsOptions, app).listen(port, bindAddress, () => {
-    console.log(`Server running on https://${bindAddress}:${port}`);
+const server = https.createServer(httpsOptions, app);
+
+server.listen(port, bindAddress, () => {
+    logger.info(`Server started`, {
+        port,
+        bindAddress,
+        nodeEnv: process.env.NODE_ENV,
+        timestamp: new Date().toISOString()
+    });
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+    logger.error('Uncaught Exception', {
+        error: {
+            message: error.message,
+            stack: error.stack,
+            code: error.code
+        }
+    });
+    // Give logger time to write before exiting
+    setTimeout(() => process.exit(1), 1000);
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+    logger.error('Unhandled Promise Rejection', {
+        reason,
+        promise
+    });
 }); 

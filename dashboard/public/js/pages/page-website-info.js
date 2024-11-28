@@ -122,6 +122,14 @@ const template = Handlebars.compile(`
                                 </button>
                                 {{/if}}
                             {{/if}}
+                            {{#if (eq state "disabled")}}
+                                {{#if (or userData.isAdmin userData.isTeamAdmin)}}
+                                    <button class="btn btn-outline-danger" id="deleteWebsite">
+                                        <i class="ti ti-trash me-2"></i>
+                                        Delete Website
+                                    </button>
+                                {{/if}}
+                            {{/if}}
                         </div>
                     </div>
                 </div>
@@ -592,6 +600,38 @@ const handler = async ({ data }) => {
             }
         });
     });
+
+    // Add delete button handler
+    const deleteBtn = document.getElementById('deleteWebsite');
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', async () => {
+            const siteName = data.siteName;
+            const confirmed = await showConfirmation({
+                type: 'danger',
+                icon: 'trash',
+                title: 'Delete Website?',
+                message: `This action cannot be undone. All data, including backups, will be permanently deleted.
+                         <div class="alert alert-danger mt-3">
+                             <div class="mb-2">To confirm, please type "DELETE ${siteName}" below:</div>
+                             <input type="text" class="form-control" id="deleteConfirmation" 
+                                    placeholder="Type confirmation here">
+                         </div>`,
+                confirmText: 'Delete Website',
+                verificationText: `DELETE ${siteName}`
+            });
+
+            if (confirmed) {
+                try {
+                    await API.deleteWebsite(fullSiteName);
+                    Notifications.success('Website deleted successfully');
+                    // Navigate back to websites list
+                    window.router.navigate(`/websites/${data.customerId}`);
+                } catch (error) {
+                    showError(error, 'Failed to delete website');
+                }
+            }
+        });
+    }
 };
 
 export const WebsiteInfoPage = {

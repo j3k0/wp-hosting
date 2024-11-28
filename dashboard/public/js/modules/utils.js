@@ -98,7 +98,8 @@ export const showConfirmation = (options) => {
             icon: options.icon || 'alert-triangle',
             title: options.title || 'Are you sure?',
             message: options.message || 'This action cannot be undone.',
-            confirmText: options.confirmText || 'Confirm'
+            confirmText: options.confirmText || 'Confirm',
+            verificationText: options.verificationText
         });
 
         document.body.insertAdjacentHTML('beforeend', modalHtml);
@@ -106,6 +107,11 @@ export const showConfirmation = (options) => {
         const modalElement = document.getElementById('confirmModal');
         const modal = new bootstrap.Modal(modalElement);
         
+        // Setup verification if needed
+        if (options.verificationText) {
+            ConfirmModal.setupVerification(modalElement, options.verificationText);
+        }
+
         const confirmBtn = document.getElementById('confirmModalAction');
         confirmBtn.addEventListener('click', () => {
             modal.hide();
