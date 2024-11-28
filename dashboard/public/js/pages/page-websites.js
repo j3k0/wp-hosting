@@ -19,7 +19,7 @@ const template = Handlebars.compile(`
                         Websites for {{customerId}}
                     </h2>
                 </div>
-                {{#if (or ../userData.isAdmin ../userData.isTeamAdmin)}}
+                {{#if (or userData.isAdmin userData.isTeamAdmin)}}
                 <div class="col-auto">
                     <select class="form-select" id="websiteFilter">
                         <option value="all" {{#if (eq filter "all")}}selected{{/if}}>All Sites</option>
@@ -122,7 +122,7 @@ const handler = async ({ data }) => {
             customerId: data.customerId, 
             sites,
             userData: window.userData,
-            filter
+            filter: effectiveFilter
         });
 
         // Add event listeners
@@ -170,7 +170,7 @@ const handler = async ({ data }) => {
     // Initial load with appropriate filter
     const initialFilter = (!window.userData.isAdmin && !window.userData.isTeamAdmin) 
         ? 'enabled' 
-        : 'enabled';
+        : 'all';
     await loadWebsites(initialFilter);
 };
 

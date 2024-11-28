@@ -16,7 +16,8 @@ class Commands {
             quota: path.join(SCRIPTS_DIR, 'quota.sh'),
             backup: path.join(SCRIPTS_DIR, 'backup.sh'),
             restore: path.join(SCRIPTS_DIR, 'restore.sh'),
-            logs: path.join(SCRIPTS_DIR, 'logs_wordpress.sh'),
+            logs_webserver: path.join(SCRIPTS_DIR, 'logs_wordpress.sh'),
+            logs_database: path.join(SCRIPTS_DIR, 'logs_db.sh'),
             dockerCompose: path.join(SCRIPTS_DIR, 'docker-compose.sh'),
             disable: path.join(SCRIPTS_DIR, 'disable.sh'),
         };
@@ -475,6 +476,18 @@ class Commands {
         } catch (error) {
             console.error('Error calculating backup size:', error);
             throw new Error('Failed to calculate backup size');
+        }
+    }
+
+    async getWebsiteLogs(siteName, lines = 100, scriptName = 'logs_webserver.sh') {
+        try {
+            // Map the script name to the correct key
+            const scriptKey = scriptName.replace('.sh', '');
+            const { stdout } = await this.executeScript(scriptKey, [siteName, `--tail=${lines}`]);
+            return this.converter.toHtml(stdout);
+        } catch (error) {
+            console.error('Error getting logs:', error);
+            throw new Error(`Failed to get ${scriptName} logs`);
         }
     }
 }

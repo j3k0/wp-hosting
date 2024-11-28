@@ -24,9 +24,12 @@ const websites = {
                 return res.status(403).json({ error: 'Access denied' });
             }
 
-            // Get sites based on filter
+            // Get sites based on filter - team admins can see all sites including disabled
             let args = [];
-            if (filter === 'enabled') {
+            if (!isAdmin && !isTeamAdmin) {
+                // Regular users can only see enabled sites
+                args.push('--enabled');
+            } else if (filter === 'enabled') {
                 args.push('--enabled');
             } else if (filter === 'disabled') {
                 args.push('--disabled');
@@ -149,6 +152,7 @@ const websites = {
         try {
             const siteName = req.params.siteName;
             const lines = parseInt(req.query.lines) || 100;
+            const logType = req.query.type || 'webserver';
             const userClientId = req.user.clientId;
             const isAdmin = req.user.isAdmin;
 
@@ -159,7 +163,9 @@ const websites = {
                 });
             }
 
-            const logs = await commands.getWordPressLogs(siteName, lines);
+            // Use the appropriate log script based on type
+            const scriptName = logType === 'database' ? 'logs_database.sh' : 'logs_webserver.sh';
+            const logs = await commands.getWebsiteLogs(siteName, lines, scriptName);
             res.json({ logs });
         } catch (error) {
             console.error('Error getting website logs:', error);
