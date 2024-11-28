@@ -111,8 +111,9 @@ const websites = {
             const siteName = req.params.siteName;
             const userClientId = req.user.clientId;
             const isAdmin = req.user.isAdmin;
+            const isTeamAdmin = req.user.isTeamAdmin;
 
-            // Vérifier que l'utilisateur a le droit d'accéder à ce site
+            // Verify access rights
             if (!isAdmin && !siteName.startsWith(`wp.${userClientId}.`)) {
                 return res.status(403).json({ 
                     error: 'Access denied: You can only view your own websites'
@@ -120,6 +121,23 @@ const websites = {
             }
 
             const info = await commands.getWebsiteInfo(siteName);
+
+            // For team members (not admin or team admin), remove only passwords
+            if (!isAdmin && !isTeamAdmin) {
+                if (info.phpmyadmin) {
+                    info.phpmyadmin = {
+                        ...info.phpmyadmin,
+                        password: ''
+                    };
+                }
+                if (info.sftp) {
+                    info.sftp = {
+                        ...info.sftp,
+                        password: ''
+                    };
+                }
+            }
+
             res.json(info);
         } catch (error) {
             console.error('Error getting website info:', error);

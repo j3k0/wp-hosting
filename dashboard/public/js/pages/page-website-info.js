@@ -165,7 +165,16 @@ const template = Handlebars.compile(`
                                     <div class="datagrid-item">
                                         <div class="datagrid-title">Password</div>
                                         <div class="datagrid-content">
-                                            <code>{{phpmyadmin.password}}</code>
+                                            {{#if (or userData.isAdmin userData.isTeamAdmin)}}
+                                                <div class="input-group">
+                                                    <input type="password" class="form-control form-control-sm" readonly value="{{phpmyadmin.password}}">
+                                                    <button class="btn btn-sm" type="button" data-action="toggle-password">
+                                                        <i class="ti ti-eye"></i>
+                                                    </button>
+                                                </div>
+                                            {{else}}
+                                                <span class="text-muted">Hidden - Ask your administrator</span>
+                                            {{/if}}
                                         </div>
                                     </div>
                                 </div>
@@ -194,7 +203,18 @@ const template = Handlebars.compile(`
                                     </div>
                                     <div class="datagrid-item">
                                         <div class="datagrid-title">Password</div>
-                                        <div class="datagrid-content"><code>{{sftp.password}}</code></div>
+                                        <div class="datagrid-content">
+                                            {{#if (or userData.isAdmin userData.isTeamAdmin)}}
+                                                <div class="input-group">
+                                                    <input type="password" class="form-control form-control-sm" readonly value="{{sftp.password}}">
+                                                    <button class="btn btn-sm" type="button" data-action="toggle-password">
+                                                        <i class="ti ti-eye"></i>
+                                                    </button>
+                                                </div>
+                                            {{else}}
+                                                <span class="text-muted">Hidden - Ask your administrator</span>
+                                            {{/if}}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -554,6 +574,24 @@ const handler = async ({ data }) => {
             }
         });
     }
+
+    // Add password toggle handlers
+    document.querySelectorAll('[data-action="toggle-password"]').forEach(button => {
+        button.addEventListener('click', () => {
+            const input = button.previousElementSibling;
+            const icon = button.querySelector('i');
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('ti-eye');
+                icon.classList.add('ti-eye-off');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('ti-eye-off');
+                icon.classList.add('ti-eye');
+            }
+        });
+    });
 };
 
 export const WebsiteInfoPage = {
