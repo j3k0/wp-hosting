@@ -437,7 +437,6 @@ export const UsersPage = {
                 )
             ]);
 
-            // Create a map for group names
             const groupsMap = Object.entries(groupsData).reduce((acc, [id, group]) => {
                 acc[id] = group.name;
                 return acc;
@@ -445,13 +444,11 @@ export const UsersPage = {
 
             render(template, { 
                 users, 
-                groups: groupsData,  // Pass the full groups data
-                groupsMap,          // Keep the name map for backward compatibility
-                userData: window.userData  // Make sure to pass userData
+                groups: groupsData,
+                groupsMap,
+                userData: window.userData
             });
 
-            setupFormHandlers();
-            UsersPage.setupGroupFormHandlers();
             UsersPage.setupEventHandlers();
         } catch (error) {
             showError(error, 'Failed to load page data');

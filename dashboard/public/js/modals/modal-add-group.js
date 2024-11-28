@@ -1,4 +1,5 @@
 import { API } from '../modules/api.js';
+import { GroupForm } from '../components/group-form.js';
 
 export const AddGroupModal = {
     template: Handlebars.compile(`
@@ -9,48 +10,11 @@ export const AddGroupModal = {
                         <h5 class="modal-title">Add New Group</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <form id="addGroupForm">
-                        <div class="modal-body">
-                            <div class="mb-3">
-                                <label class="form-label">Group Name</label>
-                                <input type="text" class="form-control" name="name" required>
-                            </div>
-                            {{#if userData.isAdmin}}
-                            <div class="mb-3">
-                                <label class="form-label">Client ID</label>
-                                <input type="text" class="form-control" name="clientId" required>
-                                <small class="form-hint">The client this group belongs to</small>
-                            </div>
-                            {{/if}}
-                            <div class="mb-3">
-                                <label class="form-label">Allowed Sites</label>
-                                <select class="form-select" name="allowedSites" multiple size="8">
-                                    {{#each websites}}
-                                        <option value="{{this}}">{{this}}</option>
-                                    {{/each}}
-                                </select>
-                                <small class="form-hint">Hold Ctrl/Cmd to select multiple sites. Leave empty for no access.</small>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">
-                                Cancel
-                            </button>
-                            <button type="submit" class="btn btn-primary ms-auto">
-                                <i class="ti ti-plus"></i>
-                                Create group
-                            </button>
-                        </div>
-                    </form>
+                    {{{groupForm}}}
                 </div>
             </div>
         </div>
     `),
-
-    async loadWebsites(clientId) {
-        const response = await API.get(`websites/${clientId}`);
-        return response.sites.map(site => site.name);
-    },
 
     show: async (userData) => {
         try {
@@ -72,10 +36,10 @@ export const AddGroupModal = {
             const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
             loadingModal.show();
 
-            // Fetch websites
+            // Fetch websites for team admin
             let websites = [];
             if (!userData.isAdmin) {
-                websites = await AddGroupModal.loadWebsites(userData.clientId);
+                websites = await GroupForm.loadWebsites(userData.clientId);
                 console.log('Loaded websites for team admin:', websites);
             }
 
@@ -84,59 +48,35 @@ export const AddGroupModal = {
             document.getElementById('loadingModal').remove();
             document.querySelector('.modal-backdrop')?.remove();
 
-            // Show the actual modal with loaded data
-            const modalHtml = AddGroupModal.template({ userData, websites });
+            // Prepare the group form
+            const groupForm = GroupForm.template({
+                formId: 'addGroupForm',
+                group: {},  // Empty for new group
+                websites,
+                userData,
+                submitIcon: 'plus',
+                submitText: 'Create group'
+            });
+
+            // Show the modal
+            const modalHtml = AddGroupModal.template({ groupForm });
             document.body.insertAdjacentHTML('beforeend', modalHtml);
             
             const modalElement = document.getElementById('addGroupModal');
             const form = document.getElementById('addGroupForm');
             const modal = new bootstrap.Modal(modalElement);
-            
-            // For admin, add client ID change handler to load websites
+
+            // Setup client ID handler if admin
             if (userData.isAdmin) {
-                const clientIdInput = form.querySelector('input[name="clientId"]');
-                const sitesSelect = form.querySelector('select[name="allowedSites"]');
-                
-                clientIdInput.addEventListener('change', async () => {
-                    const clientId = clientIdInput.value.trim();
-                    if (clientId) {
-                        sitesSelect.disabled = true;
-                        sitesSelect.innerHTML = '<option>Loading...</option>';
-                        
-                        try {
-                            const websites = await AddGroupModal.loadWebsites(clientId);
-                            console.log('Loaded websites for admin:', websites);
-                            
-                            // Update select options
-                            sitesSelect.innerHTML = websites
-                                .map(site => `<option value="${site}">${site}</option>`)
-                                .join('');
-                        } catch (error) {
-                            console.error('Failed to load websites:', error);
-                            sitesSelect.innerHTML = '';
-                        } finally {
-                            sitesSelect.disabled = false;
-                        }
-                    }
-                });
+                await GroupForm.setupClientIdHandler(form, userData);
             }
             
             return new Promise((resolve) => {
-                form.addEventListener('submit', async (e) => {
+                const submitHandler = async (e) => {
                     e.preventDefault();
                     form.classList.add('was-submitted');
-                    const formData = new FormData(form);
                     
-                    // Get selected options from multiple select
-                    const allowedSites = Array.from(
-                        form.querySelector('select[name="allowedSites"]').selectedOptions
-                    ).map(option => option.value);
-
-                    const result = {
-                        name: formData.get('name'),
-                        clientId: userData.isAdmin ? formData.get('clientId') : userData.clientId,
-                        allowedSites
-                    };
+                    const result = GroupForm.getFormData(form);
 
                     // Hide modal and cleanup
                     modal.hide();
@@ -145,20 +85,27 @@ export const AddGroupModal = {
                         const backdrop = document.querySelector('.modal-backdrop');
                         if (backdrop) backdrop.remove();
                         document.body.classList.remove('modal-open');
+                        // Remove event listeners
+                        form.removeEventListener('submit', submitHandler);
                         resolve(result);
                     }, { once: true });
-                });
-                
-                // Handle modal close/cancel
-                modalElement.addEventListener('hidden.bs.modal', () => {
+                };
+
+                const closeHandler = () => {
                     if (!form.classList.contains('was-submitted')) {
                         modalElement.remove();
                         const backdrop = document.querySelector('.modal-backdrop');
                         if (backdrop) backdrop.remove();
                         document.body.classList.remove('modal-open');
+                        // Remove event listeners
+                        modalElement.removeEventListener('hidden.bs.modal', closeHandler);
                         resolve(null);
                     }
-                }, { once: true });
+                };
+
+                // Add event listeners
+                form.addEventListener('submit', submitHandler, { once: true });
+                modalElement.addEventListener('hidden.bs.modal', closeHandler, { once: true });
                 
                 modal.show();
             });
