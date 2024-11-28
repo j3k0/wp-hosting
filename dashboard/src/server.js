@@ -8,6 +8,7 @@ const path = require('path');
 const cookieParser = require('cookie-parser');
 const auth = require('./auth');
 const websites = require('./websites');
+const bcrypt = require('bcryptjs');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -66,6 +67,30 @@ const asyncHandler = (fn) => (req, res, next) => {
 app.post('/api/login', asyncHandler(auth.login));
 app.post('/api/logout', asyncHandler(auth.logout));
 app.post('/api/users', auth.authenticateTeamAdmin, asyncHandler(auth.createUser));
+app.post('/api/account/password', auth.authenticate, async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+        const username = req.user.username;
+        
+        const users = await auth.getUsers();
+        const user = users[username];
+        
+        // Verify current password
+        const validPassword = await bcrypt.compare(currentPassword, user.password);
+        if (!validPassword) {
+            return res.status(401).json({ error: 'Current password is incorrect' });
+        }
+        
+        // Update password
+        user.password = await bcrypt.hash(newPassword, 10);
+        await auth.saveUsers(users);
+        
+        res.json({ message: 'Password updated successfully' });
+    } catch (error) {
+        console.error('Error updating password:', error);
+        res.status(500).json({ error: 'Failed to update password' });
+    }
+});
 
 // Website routes
 app.get('/api/websites', auth.authenticate, websites.listWebsites);
@@ -95,9 +120,10 @@ app.get('/api/websites/:siteName/backups/size', auth.authenticate, websites.getB
 // User routes
 app.get('/api/users', auth.authenticateTeamAdmin, auth.listUsers);
 app.post('/api/users/:username/reset-password', auth.authenticateAdmin, auth.resetPassword);
-app.delete('/api/users/:username', auth.authenticateAdmin, auth.deleteUser);
-app.put('/api/users/:username/role', auth.authenticateAdmin, asyncHandler(auth.updateUserRole));
+app.delete('/api/users/:username', auth.authenticateTeamAdmin, auth.deleteUser);
+app.put('/api/users/:username/role', auth.authenticateTeamAdmin, asyncHandler(auth.updateUserRole));
 app.put('/api/users/:username/group', auth.authenticateTeamAdmin, asyncHandler(auth.updateUserGroup));
+app.put('/api/users/:username/password', auth.authenticateTeamAdmin, asyncHandler(auth.resetPassword));
 
 // Group routes
 app.post('/api/groups', auth.authenticateTeamAdmin, asyncHandler(auth.createGroup));

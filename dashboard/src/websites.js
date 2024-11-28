@@ -7,6 +7,7 @@ const websites = {
             const requestedClientId = req.params.customerId;
             const userClientId = req.user.clientId;
             const isAdmin = req.user.isAdmin;
+            const isTeamAdmin = req.user.isTeamAdmin;
             const filter = req.query.filter || 'enabled';
 
             // Si l'utilisateur n'est pas admin, il ne peut voir que ses propres sites
@@ -35,8 +36,19 @@ const websites = {
             }
 
             // Get all sites
-            const sites = await commands.listWebsites(args);
-            
+            let sites = await commands.listWebsites(args);
+
+            // If the user is a team member (not admin or team admin), filter sites based on allowed sites
+            if (!isAdmin && !isTeamAdmin) {
+                if (req.group) {
+                    const allowedSites = req.group.allowed_sites || [];
+                    sites = sites.filter(site => allowedSites.includes(site));
+                }
+                else {
+                    sites = [];
+                }
+            }
+
             // Get all containers status at once
             const containers = await commands.getDockerContainers();
             

@@ -69,7 +69,8 @@ export function render(template, data = {}) {
     // Then render the layout with the content
     const layoutData = {
         content,
-        canManageUsers: templateData.canManageUsers
+        canManageUsers: templateData.canManageUsers,
+        userData: templateData.userData  // Make sure we pass userData to layout
     };
     app.innerHTML = Layout.template(layoutData);
     
@@ -79,14 +80,37 @@ export function render(template, data = {}) {
 
 // Setup routes
 window.router
-    .on('/', () => window.router.navigate('/login'))
+    .on('/', () => {
+        // If not logged in, go to login page
+        if (!window.userData) {
+            window.router.navigate('/login');
+            return;
+        }
+        
+        // If logged in, redirect based on role
+        if (window.userData.isAdmin) {
+            window.router.navigate('/customers');
+        } else {
+            window.router.navigate(`/websites/${window.userData.clientId}`);
+        }
+    })
     .on('/login', Handlers.login)
     .on('/customers', Handlers.customers)
     .on('/websites/:customerId', Handlers.websites)
     .on('/websites/:customerId/info/:siteName', Handlers.websiteInfo)
     .on('/users', Handlers.users)
     .on('/websites/:customerId/logs/:siteName', Handlers.websiteLogs)
-    .notFound(() => window.router.navigate('/login'));
+    .on('/account', Handlers.account)
+    .notFound(() => {
+        // For 404s, use same logic as root
+        if (!window.userData) {
+            window.router.navigate('/login');
+        } else if (window.userData.isAdmin) {
+            window.router.navigate('/customers');
+        } else {
+            window.router.navigate(`/websites/${window.userData.clientId}`);
+        }
+    });
 
 // Global event handlers
 document.addEventListener('click', (e) => {

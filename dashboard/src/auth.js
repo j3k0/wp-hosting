@@ -72,6 +72,13 @@ async function updateUsersGroup(groupId, newGroupId) {
     }
 }
 
+async function addGroupInfoToRequest(req) {
+    if (!req.user.groupId) return;
+    
+    const groups = await getGroups();
+    req.group = groups[req.user.groupId] || null;
+}
+
 const auth = {
     async login(req, res) {
         const { username, password } = req.body;
@@ -162,7 +169,7 @@ const auth = {
         res.json({ message: 'User created successfully' });
     },
 
-    authenticate(req, res, next) {
+    async authenticate(req, res, next) {
         const token = req.cookies.token;
         if (!token) {
             return res.status(401).json({ error: 'Authentication required' });
@@ -171,13 +178,14 @@ const auth = {
         try {
             const decoded = jwt.verify(token, JWT_SECRET);
             req.user = decoded;
+            await addGroupInfoToRequest(req);
             next();
         } catch (error) {
             res.status(401).json({ error: 'Invalid token' });
         }
     },
 
-    authenticateAdmin(req, res, next) {
+    async authenticateAdmin(req, res, next) {
         const token = req.cookies.token;
         if (!token) {
             return res.status(401).json({ error: 'Authentication required' });
@@ -189,13 +197,14 @@ const auth = {
                 return res.status(403).json({ error: 'Admin access required' });
             }
             req.user = decoded;
+            await addGroupInfoToRequest(req);
             next();
         } catch (error) {
             res.status(401).json({ error: 'Invalid token' });
         }
     },
 
-    authenticateTeamAdmin(req, res, next) {
+    async authenticateTeamAdmin(req, res, next) {
         const token = req.cookies.token;
         if (!token) {
             return res.status(401).json({ error: 'Authentication required' });
@@ -207,6 +216,7 @@ const auth = {
                 return res.status(403).json({ error: 'Team admin access required' });
             }
             req.user = decoded;
+            await addGroupInfoToRequest(req);
             next();
         } catch (error) {
             res.status(401).json({ error: 'Invalid token' });
@@ -253,11 +263,19 @@ const auth = {
                 return res.status(404).json({ error: 'User not found' });
             }
 
-            users[username].password = await bcrypt.hash(password, 10);
+            // Check permissions
+            if (!req.user.isAdmin && users[username].client_id !== req.user.clientId) {
+                return res.status(403).json({ error: 'Access denied' });
+            }
+
+            // Hash the new password
+            const hashedPassword = await bcrypt.hash(password, 10);
+            users[username].password = hashedPassword;
+
             await saveUsers(users);
-            
-            res.json({ message: 'Password updated successfully' });
+            res.json({ message: 'Password reset successfully' });
         } catch (error) {
+            console.error('Error resetting password:', error);
             res.status(500).json({ error: 'Failed to reset password' });
         }
     },
@@ -271,8 +289,19 @@ const auth = {
                 return res.status(404).json({ error: 'User not found' });
             }
 
+            // Prevent deleting admin users
             if (users[username].is_admin) {
                 return res.status(403).json({ error: 'Cannot delete admin user' });
+            }
+
+            // Prevent deleting yourself
+            if (username === req.user.username) {
+                return res.status(403).json({ error: 'Cannot delete your own account' });
+            }
+
+            // Team admins can only delete users from their client
+            if (!req.user.isAdmin && users[username].client_id !== req.user.clientId) {
+                return res.status(403).json({ error: 'Access denied' });
             }
 
             delete users[username];
@@ -280,6 +309,7 @@ const auth = {
             
             res.json({ message: 'User deleted successfully' });
         } catch (error) {
+            console.error('Error deleting user:', error);
             res.status(500).json({ error: 'Failed to delete user' });
         }
     },
@@ -331,17 +361,23 @@ const auth = {
 
     async listGroups(req, res) {
         try {
-            if (!req.user.isAdmin && !req.user.isTeamAdmin) {
-                return res.status(403).json({ error: 'Access denied' });
+            if (!req.user.isAdmin && !req.user.isTeamAdmin && !req.user.groupId) {
+                // If regular user with no group, return empty object
+                return res.json({});
             }
 
             const groups = await getGroups();
             const filteredGroups = req.user.isAdmin 
                 ? groups 
-                : Object.fromEntries(
-                    Object.entries(groups)
-                        .filter(([_, group]) => group.client_id === req.user.clientId)
-                );
+                : req.user.isTeamAdmin
+                    ? Object.fromEntries(
+                        Object.entries(groups)
+                            .filter(([_, group]) => group.client_id === req.user.clientId)
+                    )
+                    : Object.fromEntries(
+                        Object.entries(groups)
+                            .filter(([id, _]) => id === req.user.groupId)
+                    );
             res.json(filteredGroups);
         } catch (error) {
             res.status(500).json({ error: 'Failed to list groups' });
@@ -465,14 +501,17 @@ const auth = {
                 return res.status(404).json({ error: 'User not found' });
             }
 
-            if (username === req.user.username) {
-                return res.status(403).json({ error: 'Cannot modify your own role' });
-            }
-
+            // Prevent modifying admin users
             if (users[username].is_admin) {
                 return res.status(403).json({ error: 'Cannot modify admin users' });
             }
 
+            // Prevent modifying your own role
+            if (username === req.user.username) {
+                return res.status(403).json({ error: 'Cannot modify your own role' });
+            }
+
+            // Team admins can only modify users from their client
             if (!req.user.isAdmin && users[username].client_id !== req.user.clientId) {
                 return res.status(403).json({ error: 'Access denied' });
             }
@@ -482,6 +521,7 @@ const auth = {
             
             res.json({ message: 'User role updated successfully' });
         } catch (error) {
+            console.error('Error updating user role:', error);
             res.status(500).json({ error: 'Failed to update user role' });
         }
     }

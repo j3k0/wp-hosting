@@ -55,7 +55,10 @@ const handler = async () => {
             }
 
             const data = await API.post('login', { username, password });
-            window.userData = data;
+            window.userData = {
+                ...data,
+                username
+            };
             window.router.navigate(data.isAdmin ? '/customers' : `/websites/${data.clientId}`);
         } catch (error) {
             showError(error, 'Login failed');

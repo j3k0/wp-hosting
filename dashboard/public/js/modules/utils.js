@@ -141,4 +141,28 @@ export const handleAPIRequest = async (apiCall, errorContext) => {
         showError(error, errorContext);
         throw error;
     }
-}; 
+};
+
+export function generatePassword() {
+    // Define character sets
+    const lowercase = 'abcdefghijkmnopqrstuvwxyz'; // removed l
+    const uppercase = 'ABCDEFGHJKLMNPQRSTUVWXYZ';  // removed I,O
+    const numbers = '23456789';  // removed 0,1
+    
+    // Ensure at least one character from each set
+    let password = '';
+    password += lowercase[Math.floor(Math.random() * lowercase.length)];
+    password += uppercase[Math.floor(Math.random() * uppercase.length)];
+    password += numbers[Math.floor(Math.random() * numbers.length)];
+    
+    // Fill the rest with random characters from all sets
+    const allChars = lowercase + uppercase + numbers;
+    const length = 12; // Total password length
+    
+    for (let i = password.length; i < length; i++) {
+        password += allChars[Math.floor(Math.random() * allChars.length)];
+    }
+    
+    // Shuffle the password
+    return password.split('').sort(() => Math.random() - 0.5).join('');
+} 

@@ -97,10 +97,12 @@ const template = Handlebars.compile(`
                                     <i class="ti ti-player-pause me-2"></i>
                                     Pause
                                 </button>
+                                {{#if (or userData.isAdmin userData.isTeamAdmin)}}
                                 <button class="btn btn-outline-danger" id="disableWebsite">
                                     <i class="ti ti-power me-2"></i>
                                     Shutdown
                                 </button>
+                                {{/if}}
 
                                 <div class="vr mx-3"></div>
 
@@ -113,10 +115,12 @@ const template = Handlebars.compile(`
                                     Restore Backup...
                                 </button>
                             {{else}}
+                                {{#if (or userData.isAdmin userData.isTeamAdmin)}}
                                 <button class="btn btn-outline-success" id="enableWebsite">
                                     <i class="ti ti-power me-2"></i>
                                     Enable Website
                                 </button>
+                                {{/if}}
                             {{/if}}
                         </div>
                     </div>

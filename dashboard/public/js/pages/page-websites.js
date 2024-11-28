@@ -19,6 +19,7 @@ const template = Handlebars.compile(`
                         Websites for {{customerId}}
                     </h2>
                 </div>
+                {{#if (or ../userData.isAdmin ../userData.isTeamAdmin)}}
                 <div class="col-auto">
                     <select class="form-select" id="websiteFilter">
                         <option value="all" {{#if (eq filter "all")}}selected{{/if}}>All Sites</option>
@@ -26,6 +27,7 @@ const template = Handlebars.compile(`
                         <option value="disabled" {{#if (eq filter "disabled")}}selected{{/if}}>Disabled Sites</option>
                     </select>
                 </div>
+                {{/if}}
             </div>
         </div>
     </div>
@@ -101,8 +103,12 @@ const template = Handlebars.compile(`
 
 const handler = async ({ data }) => {
     const loadWebsites = async (filter = 'all') => {
+        const effectiveFilter = (!window.userData.isAdmin && !window.userData.isTeamAdmin) 
+            ? 'enabled' 
+            : filter;
+
         const response = await handleAPIRequest(
-            () => API.get(`websites/${data.customerId}?filter=${filter}`),
+            () => API.get(`websites/${data.customerId}?filter=${effectiveFilter}`),
             'Failed to load websites'
         );
 
@@ -161,8 +167,11 @@ const handler = async ({ data }) => {
         });
     };
 
-    // Initial load with default filter
-    await loadWebsites('enabled');
+    // Initial load with appropriate filter
+    const initialFilter = (!window.userData.isAdmin && !window.userData.isTeamAdmin) 
+        ? 'enabled' 
+        : 'enabled';
+    await loadWebsites(initialFilter);
 };
 
 export const WebsitesPage = {

@@ -4,6 +4,7 @@ import { WebsitesPage } from '../pages/page-websites.js';
 import { WebsiteInfoPage } from '../pages/page-website-info.js';
 import { UsersPage } from '../pages/page-users.js';
 import { WebsiteLogsPage } from '../pages/page-website-logs.js';
+import { AccountPage } from '../pages/page-account.js';
 
 export const Handlers = {
     login: LoginPage.handler,
@@ -11,5 +12,6 @@ export const Handlers = {
     websites: WebsitesPage.handler,
     websiteInfo: WebsiteInfoPage.handler,
     users: UsersPage.handler,
-    websiteLogs: WebsiteLogsPage.handler
+    websiteLogs: WebsiteLogsPage.handler,
+    account: AccountPage.handler
 }; 

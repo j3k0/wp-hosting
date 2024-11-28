@@ -1,5 +1,6 @@
 import { API } from '../modules/api.js';
 import { UserGroupSelect } from '../components/user-group.js';
+import { generatePassword } from '../modules/utils.js';
 
 export const AddUserModal = {
     template: Handlebars.compile(`
@@ -25,7 +26,13 @@ export const AddUserModal = {
                             {{/if}}
                             <div class="mb-3">
                                 <label class="form-label">Password</label>
-                                <input type="password" class="form-control" name="password" required>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" name="password" required value="{{suggestedPassword}}">
+                                    <button class="btn" type="button" data-action="generate-password">
+                                        <i class="ti ti-refresh"></i>
+                                    </button>
+                                </div>
+                                <small class="form-hint">A strong password has been generated. Click the refresh button to generate a new one.</small>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Group</label>
@@ -65,7 +72,11 @@ export const AddUserModal = {
             });
 
             // Show modal with current data
-            const modalHtml = AddUserModal.template({ userData, userGroupSelect });
+            const modalHtml = AddUserModal.template({ 
+                userData, 
+                userGroupSelect,
+                suggestedPassword: generatePassword()
+            });
             document.body.insertAdjacentHTML('beforeend', modalHtml);
             
             const modalElement = document.getElementById('addUserModal');
@@ -106,6 +117,13 @@ export const AddUserModal = {
                     }
                 });
             }
+            
+            // Add password generation handler
+            const generateBtn = form.querySelector('[data-action="generate-password"]');
+            const passwordInput = form.querySelector('input[name="password"]');
+            generateBtn.addEventListener('click', () => {
+                passwordInput.value = generatePassword();
+            });
             
             return new Promise((resolve) => {
                 form.addEventListener('submit', async (e) => {

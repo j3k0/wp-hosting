@@ -1,6 +1,6 @@
 import { API } from '../modules/api.js';
 import { render } from '../main.js';
-import { showConfirmation, Notifications, showError, handleAPIRequest } from '../modules/utils.js';
+import { showConfirmation, Notifications, showError, handleAPIRequest, generatePassword } from '../modules/utils.js';
 import { ChangeGroupModal } from '../modals/modal-change-group.js';
 import { AddGroupModal } from '../modals/modal-add-group.js';
 import { AddUserModal } from '../modals/modal-add-user.js';
@@ -214,20 +214,21 @@ const setupFormHandlers = () => {
 
 const handleResetPassword = async (username) => {
     try {
+        const newPassword = generatePassword();
         const confirmed = await showConfirmation({
             type: 'warning',
-            icon: 'key',
             title: 'Reset Password',
-            message: `Are you sure you want to reset the password for ${username}?`,
+            message: `Are you sure you want to reset the password for user "${username}"?\n\n` +
+                    `New password will be:\n` +
+                    `<div class="alert alert-info text-center mt-2 mb-0">` +
+                    `<code style="font-size: 1.2em; letter-spacing: 0.1em;">${newPassword}</code>` +
+                    `</div>`,
             confirmText: 'Reset Password'
         });
 
         if (confirmed) {
-            const password = prompt('Enter new password for ' + username);
-            if (password) {
-                await API.post(`users/${username}/reset-password`, { password });
-                Notifications.success('Password updated successfully');
-            }
+            await API.put(`users/${username}/password`, { password: newPassword });
+            Notifications.success('Password reset successfully');
         }
     } catch (error) {
         showError(error, 'Failed to reset password');
