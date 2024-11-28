@@ -99,6 +99,8 @@ export const Layout = {
     `),
 
     userInitials(username) {
+        if (!username) return '';
+        
         return username
             .split(/[._-]/)
             .map(part => part.charAt(0).toUpperCase())

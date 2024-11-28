@@ -188,6 +188,9 @@ export function isValidUsername(username) {
  * @returns {string} Formatted username for display
  */
 export function formatDisplayUsername(username) {
+    // Handle null/undefined username
+    if (!username) return '';
+    
     // Replace underscores with spaces
     let formatted = username.replace(/_/g, ' ');
     

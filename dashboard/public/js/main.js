@@ -115,7 +115,7 @@ window.router
 // Global event handlers
 document.addEventListener('click', (e) => {
     // Handle logout
-    if (e.target.id === 'logout' || e.target.closest('#logout')) {
+    if (e.target.matches('[data-action="logout"]') || e.target.closest('[data-action="logout"]')) {
         e.preventDefault();
         API.post('logout').then(() => {
             window.userData = null;
