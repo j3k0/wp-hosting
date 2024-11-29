@@ -4,6 +4,58 @@ import { showConfirmation, Notifications, formatBytes, showError, handleAPIReque
 import { DeployWebsiteModal } from '../modals/modal-deploy-website.js';
 import { ProgressModal } from '../modals/modal-progress.js';
 
+// First, move the table body template definition to the top
+const tableBodyTemplate = Handlebars.compile(`
+    {{#each sites}}
+    <tr>
+        <td style="cursor: pointer" onclick="window.router.navigate('/websites/{{../customerId}}/info/{{siteName}}')">
+            <div class="d-flex align-items-center">
+                <i class="ti ti-world me-2"></i>
+                <span class="text-muted">{{siteName}}</span>
+            </div>
+        </td>
+        <td>
+            {{#with (serviceStatus 'Web' services.webserver)}}
+                <span class="status-indicator status-{{statusColor}}"
+                      title="Web: {{status}}">
+                    <span class="status-indicator-circle"></span>
+                    <span class="status-indicator-circle"></span>
+                    <span class="status-indicator-circle"></span>
+                </span>
+            {{/with}}
+        </td>
+        <td>
+            {{#with (serviceStatus 'DB' services.database)}}
+                <span class="status-indicator status-{{statusColor}}"
+                      title="Database: {{status}}">
+                    <span class="status-indicator-circle"></span>
+                    <span class="status-indicator-circle"></span>
+                    <span class="status-indicator-circle"></span>
+                </span>
+            {{/with}}
+        </td>
+        <td class="text-end">{{usage}}</td>
+        <td>
+            <div class="btn-list flex-nowrap">
+                <a href="/websites/{{../customerId}}/logs/{{siteName}}" 
+                   data-navigo
+                   class="btn btn-icon btn-ghost-secondary" 
+                   title="View Logs">
+                    <i class="ti ti-file-text"></i>
+                </a>
+                <button class="btn btn-icon btn-ghost-secondary" 
+                        data-action="restart-website"
+                        data-site-name="{{siteName}}"
+                        title="Restart Website">
+                    <i class="ti ti-refresh"></i>
+                </button>
+            </div>
+        </td>
+    </tr>
+    {{/each}}
+`);
+
+// Then modify the main template to use the table body template
 const template = Handlebars.compile(`
     <div class="page-header d-print-none">
         <div class="container-xl">
@@ -29,6 +81,9 @@ const template = Handlebars.compile(`
                         <option value="enabled" {{#if (eq filter "enabled")}}selected{{/if}}>Enabled Sites</option>
                         <option value="disabled" {{#if (eq filter "disabled")}}selected{{/if}}>Disabled Sites</option>
                     </select>
+                </div>
+                <div class="col-auto me-3">
+                    <input type="text" class="form-control" id="websiteSearch" placeholder="Search sites...">
                 </div>
 
                 <div class="col-auto ms-auto d-print-none">
@@ -58,53 +113,7 @@ const template = Handlebars.compile(`
                             </tr>
                         </thead>
                         <tbody>
-                            {{#each sites}}
-                            <tr>
-                                <td style="cursor: pointer" onclick="window.router.navigate('/websites/{{../customerId}}/info/{{siteName}}')">
-                                    <div class="d-flex align-items-center">
-                                        <i class="ti ti-world me-2"></i>
-                                        <span class="text-muted">{{siteName}}</span>
-                                    </div>
-                                </td>
-                                <td>
-                                    {{#with (serviceStatus 'Web' services.webserver)}}
-                                        <span class="status-indicator status-{{statusColor}}"
-                                              title="Web: {{status}}">
-                                            <span class="status-indicator-circle"></span>
-                                            <span class="status-indicator-circle"></span>
-                                            <span class="status-indicator-circle"></span>
-                                        </span>
-                                    {{/with}}
-                                </td>
-                                <td>
-                                    {{#with (serviceStatus 'DB' services.database)}}
-                                        <span class="status-indicator status-{{statusColor}}"
-                                              title="Database: {{status}}">
-                                            <span class="status-indicator-circle"></span>
-                                            <span class="status-indicator-circle"></span>
-                                            <span class="status-indicator-circle"></span>
-                                        </span>
-                                    {{/with}}
-                                </td>
-                                <td class="text-end">{{usage}}</td>
-                                <td>
-                                    <div class="btn-list flex-nowrap">
-                                        <a href="/websites/{{../customerId}}/logs/{{siteName}}" 
-                                           data-navigo
-                                           class="btn btn-icon btn-ghost-secondary" 
-                                           title="View Logs">
-                                            <i class="ti ti-file-text"></i>
-                                        </a>
-                                        <button class="btn btn-icon btn-ghost-secondary" 
-                                                data-action="restart-website"
-                                                data-site-name="{{siteName}}"
-                                                title="Restart Website">
-                                            <i class="ti ti-refresh"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            {{/each}}
+                            {{{tableBody}}}
                         </tbody>
                     </table>
                 </div>
@@ -124,20 +133,25 @@ const handler = async ({ data }) => {
             'Failed to load websites'
         );
 
-        const sites = response.sites.map(site => ({
+        // Store the full list of sites
+        const allSites = response.sites.map(site => ({
             siteName: site.name.split('.').slice(2).join('.'),
             usage: formatBytes(site.usage),
             services: site.services
         }));
 
+        // Initial render of the full page
         render(template, { 
             customerId: data.customerId, 
-            sites,
+            tableBody: tableBodyTemplate({ 
+                sites: allSites,
+                customerId: data.customerId 
+            }),
             userData: window.userData,
             filter: effectiveFilter
         });
 
-        // Add event listeners
+        // Attach page-level event handlers (only once)
         const filterSelect = document.getElementById('websiteFilter');
         if (filterSelect) {
             filterSelect.addEventListener('change', (e) => {
@@ -145,45 +159,22 @@ const handler = async ({ data }) => {
             });
         }
 
-        // Add restart button handlers
-        document.querySelectorAll('[data-action="restart-website"]').forEach(button => {
-            button.addEventListener('click', async () => {
-                const siteName = button.dataset.siteName;
-                try {
-                    const confirmed = await showConfirmation({
-                        type: 'warning',
-                        icon: 'refresh',
-                        title: 'Restart Website?',
-                        message: 'The website will be temporarily unavailable during the restart.',
-                        confirmText: 'Restart'
-                    });
-
-                    if (confirmed) {
-                        button.disabled = true;
-                        button.innerHTML = '<i class="ti ti-loader ti-spin"></i>';
-                        
-                        const fullSiteName = `wp.${data.customerId}.${siteName}`;
-                        await API.post(`websites/${fullSiteName}/restart`);
-                        
-                        // Refresh the website list after restart
-                        await loadWebsites(filterSelect?.value || 'enabled');
-                        Notifications.success('Website restarted successfully');
-                    }
-                } catch (error) {
-                    showError(error, 'Failed to restart website');
-                } finally {
-                    button.disabled = false;
-                    button.innerHTML = '<i class="ti ti-refresh"></i>';
-                }
+        const searchInput = document.getElementById('websiteSearch');
+        if (searchInput) {
+            searchInput.addEventListener('input', () => {
+                const searchTerm = searchInput.value.toLowerCase();
+                const filteredSites = allSites.filter(site => 
+                    site.siteName.toLowerCase().includes(searchTerm)
+                );
+                renderTableBody(filteredSites);
             });
-        });
+        }
 
-        // Add deploy button handler
         const deployButton = document.querySelector('[data-action="deploy-website"]');
         if (deployButton) {
             deployButton.addEventListener('click', async () => {
                 try {
-                    const result = await DeployWebsiteModal.show(window.userData);
+                    const result = await DeployWebsiteModal.show(window.userData, data.customerId);
                     if (result) {
                         const { domain, siteName, type } = result;
                         
@@ -267,6 +258,57 @@ const handler = async ({ data }) => {
                 }
             });
         }
+
+        // Helper function to render just the table body
+        function renderTableBody(sites) {
+            const tbody = document.querySelector('tbody');
+            if (tbody) {
+                tbody.innerHTML = tableBodyTemplate({ 
+                    sites,
+                    customerId: data.customerId 
+                });
+                attachTableEventHandlers();
+            }
+        }
+
+        // Helper function to attach only table-specific event handlers
+        function attachTableEventHandlers() {
+            // Only attach handlers to elements within the table
+            document.querySelectorAll('tbody [data-action="restart-website"]').forEach(button => {
+                button.addEventListener('click', async () => {
+                    const siteName = button.dataset.siteName;
+                    try {
+                        const confirmed = await showConfirmation({
+                            type: 'warning',
+                            icon: 'refresh',
+                            title: 'Restart Website?',
+                            message: 'The website will be temporarily unavailable during the restart.',
+                            confirmText: 'Restart'
+                        });
+
+                        if (confirmed) {
+                            button.disabled = true;
+                            button.innerHTML = '<i class="ti ti-loader ti-spin"></i>';
+                            
+                            const fullSiteName = `wp.${data.customerId}.${siteName}`;
+                            await API.post(`websites/${fullSiteName}/restart`);
+                            
+                            // Refresh the website list after restart
+                            await loadWebsites(filterSelect?.value || 'enabled');
+                            Notifications.success('Website restarted successfully');
+                        }
+                    } catch (error) {
+                        showError(error, 'Failed to restart website');
+                    } finally {
+                        button.disabled = false;
+                        button.innerHTML = '<i class="ti ti-refresh"></i>';
+                    }
+                });
+            });
+        }
+
+        // Initial attachment of table handlers
+        attachTableEventHandlers();
     };
 
     // Initial load with appropriate filter

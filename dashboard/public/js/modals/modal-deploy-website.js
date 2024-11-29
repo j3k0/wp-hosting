@@ -12,12 +12,6 @@ export const DeployWebsiteModal = {
                     </div>
                     <form id="deployWebsiteForm">
                         <div class="modal-body">
-                            {{#if userData.isAdmin}}
-                            <div class="mb-3">
-                                <label class="form-label required">Client ID</label>
-                                <input type="text" class="form-control" name="clientId" required>
-                            </div>
-                            {{/if}}
                             <div class="mb-3">
                                 <label class="form-label required">Domain</label>
                                 <input type="text" class="form-control" name="domain" required 
@@ -61,9 +55,9 @@ export const DeployWebsiteModal = {
         </div>
     `),
 
-    show: async (userData) => {
+    show: async (userData, customerId) => {
         try {
-            const clientId = userData.isAdmin ? '' : userData.clientId;
+            const clientId = userData.isAdmin ? (customerId || '') : userData.clientId;
             const modalHtml = DeployWebsiteModal.template({ 
                 userData,
                 clientId
@@ -121,7 +115,7 @@ export const DeployWebsiteModal = {
                         const domain = formData.get('domain').trim().toLowerCase().replace(/^www\./, '');
                         const siteName = formData.get('siteName').trim().toLowerCase();
                         const type = userData.isAdmin ? formData.get('type') : 'php';
-                        const clientId = userData.isAdmin ? formData.get('clientId').trim() : userData.clientId;
+                        const clientId = customerId || userData.clientId;
                         const fullSiteName = `wp.${clientId}.${siteName}`;
                         
                         if (!isValidDomain(domain)) {
