@@ -25,6 +25,28 @@ if [ ! -e /backups/$PROJECT/backup_${FINAL_BACKUP_ID}.tar.gz ]; then
     exit 1
 fi
 
+# Check if backup is already flat
+FINAL_BACKUP="/backups/$PROJECT/backup_${FINAL_BACKUP_ID}.tar.gz"
+ALL_BACKUPS="`ls -1 /backups/$PROJECT/*.tar.gz | sort`"
+
+# A backup is flat if it's either:
+# 1. The first backup in the sequence
+# 2. Has no incremental data in its tar contents
+is_flat=0
+if [ "`echo $FINAL_BACKUP`" = "`ls -1 /backups/$PROJECT/*.tar.gz | sort | head -1`" ]; then
+    is_flat=1
+else
+    # Check for incremental data in tar
+    if ! tar --list --incremental -f "$FINAL_BACKUP" 2>/dev/null | grep -q ".*"; then
+        is_flat=1
+    fi
+fi
+
+if [ $is_flat -eq 1 ]; then
+    echo "Backup is already flat. No action needed."
+    exit 0
+fi
+
 FLAT_BACKUP_FILE=$PROJECT/flat-backups/backup_${FINAL_BACKUP_ID}.tar.gz
 if [ -e "$FLAT_BACKUP_FILE" ]; then
     echo "File $FLAT_BACKUP_FILE already exists. Skipping"

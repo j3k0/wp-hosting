@@ -169,6 +169,7 @@ async function addGroupInfoToRequest(req) {
 const auth = {
     getGroups,
     getUsers,
+    saveUsers,
     async login(req, res) {
         const { username, password } = req.body;
         const normalizedUsername = username.toLowerCase();
@@ -194,6 +195,13 @@ const auth = {
                 return res.status(401).json({ error: 'Invalid credentials' });
             }
 
+            // Get group name if user has a group
+            let groupName = null;
+            if (users[normalizedUsername].group_id) {
+                const groups = await getGroups();
+                groupName = groups[users[normalizedUsername].group_id]?.name;
+            }
+
             const token = jwt.sign(
                 { 
                     username: normalizedUsername,
@@ -214,7 +222,8 @@ const auth = {
                 ip: req.ip,
                 isAdmin: users[normalizedUsername].is_admin,
                 isTeamAdmin: users[normalizedUsername].is_team_admin,
-                clientId: users[normalizedUsername].client_id
+                clientId: users[normalizedUsername].client_id,
+                groupName
             });
 
             res.cookie('token', token, { httpOnly: true, secure: true });
@@ -223,7 +232,8 @@ const auth = {
                 isAdmin: users[normalizedUsername].is_admin,
                 isTeamAdmin: users[normalizedUsername].is_team_admin,
                 clientId: users[normalizedUsername].client_id,
-                groupId: users[normalizedUsername].group_id
+                groupId: users[normalizedUsername].group_id,
+                groupName
             });
         } catch (error) {
             console.error('Login error:', error);

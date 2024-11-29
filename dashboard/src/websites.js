@@ -706,13 +706,15 @@ const websites = {
             const userClientId = req.user.clientId;
             const isAdmin = req.user.isAdmin;
             const isTeamAdmin = req.user.isTeamAdmin;
+            const requestId = res.locals.requestContext?.requestId;
 
             logger.info('Website deletion initiated', {
                 siteName,
                 userClientId,
                 isAdmin,
                 isTeamAdmin,
-                requestedBy: req.user.username
+                requestedBy: req.user.username,
+                requestId
             });
 
             // Only admins and team admins can delete sites
@@ -720,7 +722,8 @@ const websites = {
                 logger.warn('Non-admin user attempted to delete website', {
                     siteName,
                     userClientId,
-                    requestedBy: req.user.username
+                    requestedBy: req.user.username,
+                    requestId
                 });
                 return res.status(403).json({ 
                     error: 'Access denied: Only admins can delete websites'
@@ -732,7 +735,8 @@ const websites = {
                 logger.warn('Unauthorized website deletion attempt', {
                     siteName,
                     userClientId,
-                    requestedBy: req.user.username
+                    requestedBy: req.user.username,
+                    requestId
                 });
                 return res.status(403).json({ 
                     error: 'Access denied: You can only delete your own websites'
@@ -743,20 +747,32 @@ const websites = {
 
             logger.info('Website deleted successfully', {
                 siteName,
-                requestedBy: req.user.username
+                requestedBy: req.user.username,
+                requestId
             });
 
             res.json({ message: 'Website deleted successfully' });
         } catch (error) {
+            // Enhanced error logging
             logger.error('Failed to delete website', {
                 error: {
                     message: error.message,
-                    stack: error.stack
+                    stack: error.stack,
+                    code: error.code,
+                    stderr: error.stderr,  // Capture stderr from command execution
+                    stdout: error.stdout   // Capture stdout from command execution
                 },
                 siteName: req.params.siteName,
-                requestedBy: req.user.username
+                requestedBy: req.user.username,
+                requestId: res.locals.requestContext?.requestId
             });
-            res.status(500).json({ error: 'Failed to delete website' });
+            
+            // More specific error message based on the error
+            const errorMessage = error.code === 1 && error.stderr?.includes('Permission denied')
+                ? 'Failed to delete website: Permission denied. Please contact system administrator.'
+                : 'Failed to delete website';
+                
+            res.status(500).json({ error: errorMessage });
         }
     }
 };

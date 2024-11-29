@@ -782,7 +782,10 @@ class Commands {
         try {
             logger.info('Website deletion initiated', { siteName });
 
-            const { stdout } = await execAsync(`sudo ${this.scripts.delete} ${siteName} -y`);
+            const { stdout } = await execAsync(`/apps/wp-hosting/delete.sh ${siteName} -y`, {
+                env: process.env,
+                maxBuffer: 10 * 1024 * 1024  // Increase to 10MB
+            });
             
             logger.info('Website deleted successfully', {
                 siteName,
@@ -799,7 +802,7 @@ class Commands {
                     stack: error.stack
                 }
             });
-            throw new Error('Failed to delete website');
+            throw error;  // Throw the original error to preserve details
         }
     }
 }

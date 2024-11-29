@@ -11,11 +11,6 @@ const template = Handlebars.compile(`
         <div class="container-xl">
             <div class="row g-2 align-items-center">
                 <div class="col">
-                    <div class="page-pretitle">
-                        <a href="/customers" data-navigo class="text-muted">
-                            <i class="ti ti-arrow-left"></i> Back to Dashboard
-                        </a>
-                    </div>
                     <h2 class="page-title">
                         <i class="ti ti-users me-2"></i>
                         User Management
@@ -248,7 +243,7 @@ const handleDeleteUser = async (username) => {
         if (confirmed) {
             await API.delete(`users/${username}`);
             Notifications.success('User deleted successfully');
-            await handler();
+            await UsersPage.handler();
         }
     } catch (error) {
         showError(error, 'Failed to delete user');

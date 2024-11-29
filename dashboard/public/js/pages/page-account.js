@@ -64,6 +64,9 @@ const template = Handlebars.compile(`
                                 <div class="mb-3">
                                     <label class="form-label">New Password</label>
                                     <input type="password" class="form-control" name="newPassword" required>
+                                    <div class="form-text text-muted">
+                                        Password must be at least 8 characters long and contain at least one uppercase letter and one number.
+                                    </div>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Confirm New Password</label>
@@ -105,7 +108,23 @@ const handler = async () => {
             const confirmPassword = formData.get('confirmPassword');
 
             if (newPassword !== confirmPassword) {
-                showError(new Error('New passwords do not match'));
+                showError(new Error('Passwords do not match'), 'Password Validation');
+                return;
+            }
+
+            // Add client-side password validation
+            if (newPassword.length < 8) {
+                showError(new Error('Password must be at least 8 characters long'), 'Password Validation');
+                return;
+            }
+
+            if (!/[A-Z]/.test(newPassword)) {
+                showError(new Error('Password must contain at least one uppercase letter'), 'Password Validation');
+                return;
+            }
+
+            if (!/\d/.test(newPassword)) {
+                showError(new Error('Password must contain at least one number'), 'Password Validation');
                 return;
             }
 

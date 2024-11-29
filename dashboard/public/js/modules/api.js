@@ -19,6 +19,11 @@ export const API = {
                     throw new Error(data.error || 'Login failed');
                 }
                 
+                // For password change errors, throw the specific error message
+                if (endpoint === 'account/password') {
+                    throw new Error(data.error || 'Password change failed');
+                }
+                
                 // For authentication errors
                 if (response.status === 401 || response.status === 403) {
                     window.router.navigate('/login');

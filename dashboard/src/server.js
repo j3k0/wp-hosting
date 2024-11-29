@@ -111,6 +111,31 @@ app.post('/api/account/password', auth.authenticate, async (req, res) => {
             ip: req.ip
         });
 
+        // Add password validation
+        if (newPassword.length < 8) {
+            logger.warn('Password change failed - password too short', {
+                username,
+                ip: req.ip
+            });
+            return res.status(400).json({ error: 'Password must be at least 8 characters long' });
+        }
+
+        if (!/[A-Z]/.test(newPassword)) {
+            logger.warn('Password change failed - missing uppercase letter', {
+                username,
+                ip: req.ip
+            });
+            return res.status(400).json({ error: 'Password must contain at least one uppercase letter' });
+        }
+
+        if (!/\d/.test(newPassword)) {
+            logger.warn('Password change failed - missing number', {
+                username,
+                ip: req.ip
+            });
+            return res.status(400).json({ error: 'Password must contain at least one number' });
+        }
+
         const users = await auth.getUsers();
         const user = users[username];
         
@@ -190,7 +215,7 @@ app.post('/api/websites/:siteName/backup', auth.authenticate, websites.startBack
 app.get('/api/websites/:siteName/backups', auth.authenticate, websites.listBackups);
 app.post('/api/websites/:siteName/restore', auth.authenticate, websites.restoreBackup);
 app.get('/api/websites/:siteName/backups/size', auth.authenticate, websites.getBackupSize);
-app.delete('/api/websites/:siteName', auth.authenticate, websites.deleteWebsite);
+app.delete('/api/websites/:siteName', auth.authenticate, asyncHandler(websites.deleteWebsite));
 
 // User routes
 app.get('/api/users', auth.authenticateTeamAdmin, auth.listUsers);

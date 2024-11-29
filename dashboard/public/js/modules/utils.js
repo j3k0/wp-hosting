@@ -11,8 +11,9 @@ export const Notifications = {
 
         // Different positions for different types
         const positions = {
-            error: 'top-0 start-50 translate-middle-x mt-3',  // Top center for errors
-            default: 'bottom-0 end-0 p-3'                     // Bottom right for others
+            error: 'top-0 start-50 translate-middle-x mt-3',    // Top center for errors
+            success: 'top-0 start-50 translate-middle-x mt-3',  // Top center for success
+            default: 'bottom-0 end-0 p-3'                       // Bottom right for others
         };
 
         const toast = document.createElement('div');
@@ -39,13 +40,13 @@ export const Notifications = {
         `;
 
         // Get or create container based on type
-        const containerId = type === 'danger' ? 'error-toast-container' : 'toast-container';
+        const containerId = type === 'danger' || type === 'success' ? 'top-toast-container' : 'toast-container';
         let container = document.getElementById(containerId);
         
         if (!container) {
             container = document.createElement('div');
             container.id = containerId;
-            container.className = `toast-container position-fixed ${positions[type === 'danger' ? 'error' : 'default']}`;
+            container.className = `toast-container position-fixed ${positions[type] || positions.default}`;
             document.body.appendChild(container);
         }
 
