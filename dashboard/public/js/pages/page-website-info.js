@@ -3,6 +3,7 @@ import { render } from '../main.js';
 import { ServiceStatusCard } from '../components/service-status.js';
 import { showConfirmation, Notifications, showError, handleAPIRequest } from '../modules/utils.js';
 import { RestoreBackupModal } from '../modals/modal-restore-backup.js';
+import { ProgressModal } from '../modals/modal-progress.js';
 
 const template = Handlebars.compile(`
     <div class="page-header d-print-none">
@@ -305,331 +306,397 @@ const handleServiceAction = async (action, buttonId, loadingText, refreshService
 };
 
 const handler = async ({ data }) => {
-    const fullSiteName = `wp.${data.customerId}.${data.siteName}`;
-    
-    // Function to disable/enable all action buttons
-    const setActionButtonsState = (disabled) => {
-        const buttons = [
-            document.getElementById('startWebsite'),
-            document.getElementById('stopWebsite'),
-            document.getElementById('restartWebsite'),
-            document.getElementById('refreshServices')
-        ];
-        buttons.forEach(button => {
-            if (button) button.disabled = disabled;
-        });
-    };
-
-    // Function to refresh services and update buttons
-    const refreshServices = async () => {
-        try {
-            const info = await API.get(`websites/${fullSiteName}/info`);
-            
-            // Update services container
-            const servicesContainer = document.getElementById('servicesContainer');
-            if (servicesContainer) {
-                const servicesHtml = Object.entries({
-                    'Webserver': info.services.webserver,
-                    'Database': info.services.database,
-                    'phpMyAdmin': info.services.phpmyadmin,
-                    'SFTP': info.services.sftp,
-                    'Backup': info.services.backup
-                }).map(([name, status]) => {
-                    return ServiceStatusCard.template(ServiceStatusCard.getStatusData(name, status));
-                }).join('');
-                
-                servicesContainer.innerHTML = servicesHtml;
-            }
-
-            // Update button states based on new service status
-            const backupInProgress = info.services.backup.startsWith('In Progress');
-            const allDisabled = Object.values(info.services).every(status => status === 'Disabled');
-            const allUp = Object.values(info.services).every(status => status === 'Up');
-            const allDown = Object.values(info.services).every(status => status === 'Down' || status === 'Disabled');
-
-            const startBtn = document.getElementById('startWebsite');
-            const stopBtn = document.getElementById('stopWebsite');
-            const restartBtn = document.getElementById('restartWebsite');
-            const createBackupBtn = document.getElementById('startBackup');
-            const restoreBackupBtn = document.getElementById('restoreBackup');
-
-            if (startBtn) startBtn.disabled = allUp || allDisabled || backupInProgress;
-            if (stopBtn) stopBtn.disabled = allDown || allDisabled || backupInProgress;
-            if (restartBtn) restartBtn.disabled = allDisabled || backupInProgress;
-            if (createBackupBtn) createBackupBtn.disabled = allDisabled || allDown || backupInProgress;
-            if (restoreBackupBtn) restoreBackupBtn.disabled = allDisabled || allDown || backupInProgress;
-
-            return info.services;
-        } catch (error) {
-            showError(error, 'Failed to refresh services status');
-            throw error;
-        }
-    };
-
-    // Initial render
-    const info = await handleAPIRequest(
-        () => API.get(`websites/${fullSiteName}/info`),
-        'Failed to load website information'
-    );
-    
-    console.log('Frontend received info:', info);
-    
-    // If we have structured data, use it; otherwise use raw
-    const templateData = {
-        customerId: data.customerId,
-        siteName: data.siteName,
-        userData: window.userData,
-        services: info.services,
-        state: info.state
-    };
-
-    if (info.urls?.length || info.phpmyadmin?.url || info.sftp?.host || info.dns?.length) {
-        // Use structured data
-        Object.assign(templateData, {
-            urls: info.urls,
-            phpmyadmin: info.phpmyadmin,
-            sftp: info.sftp,
-            dns: info.dns
-        });
-    } else {
-        // Use raw data
-        templateData.raw = info.raw;
-    }
-
-    console.log('Template data being rendered:', templateData);
-    render(template, templateData);
-
-    // Add this line to initialize button states immediately after render
-    await refreshServices();
-
-    // Add refresh button handler
-    const refreshBtn = document.getElementById('refreshServices');
-    if (refreshBtn) {
-        refreshBtn.addEventListener('click', async () => {
-            const icon = refreshBtn.querySelector('i');
-            refreshBtn.disabled = true;
-            icon.classList.add('ti-spin');
-            
-            await refreshServices();
-            
-            refreshBtn.disabled = false;
-            icon.classList.remove('ti-spin');
-        });
-    }
-
-    // Add restart button handler
-    const restartBtn = document.getElementById('restartWebsite');
-    if (restartBtn) {
-        restartBtn.addEventListener('click', async () => {
-            const confirmed = await showConfirmation({
-                type: 'warning',
-                icon: 'refresh',
-                title: 'Restart Website?',
-                message: 'The website will be temporarily unavailable during the restart.',
-                confirmText: 'Restart'
+    try {
+        const fullSiteName = `wp.${data.customerId}.${data.siteName}`;
+        
+        // Function to disable/enable all action buttons
+        const setActionButtonsState = (disabled) => {
+            const buttons = [
+                document.getElementById('startWebsite'),
+                document.getElementById('stopWebsite'),
+                document.getElementById('restartWebsite'),
+                document.getElementById('refreshServices')
+            ];
+            buttons.forEach(button => {
+                if (button) button.disabled = disabled;
             });
+        };
 
-            if (confirmed) {
-                await handleServiceAction(
-                    () => API.restartWebsite(fullSiteName),
-                    'restartWebsite',
-                    'Restarting...',
-                    refreshServices,
-                    setActionButtonsState
-                );
-            }
-        });
-    }
-
-    // Add start button handler
-    const startBtn = document.getElementById('startWebsite');
-    if (startBtn) {
-        startBtn.addEventListener('click', async () => {
-            const confirmed = await showConfirmation({
-                type: 'success',
-                icon: 'player-play',
-                title: 'Start Website?',
-                message: 'All services will be started.',
-                confirmText: 'Start'
-            });
-
-            if (confirmed) {
-                await handleServiceAction(
-                    () => API.startWebsite(fullSiteName),
-                    'startWebsite',
-                    'Starting...',
-                    refreshServices,
-                    setActionButtonsState
-                );
-            }
-        });
-    }
-
-    // Add stop button handler
-    const stopBtn = document.getElementById('stopWebsite');
-    if (stopBtn) {
-        stopBtn.addEventListener('click', async () => {
-            const confirmed = await showConfirmation({
-                type: 'danger',
-                icon: 'player-stop',
-                title: 'Stop Website?',
-                message: 'All services will be stopped. The website will be unavailable.',
-                confirmText: 'Stop'
-            });
-
-            if (confirmed) {
-                await handleServiceAction(
-                    () => API.stopWebsite(fullSiteName),
-                    'stopWebsite',
-                    'Stopping...',
-                    refreshServices,
-                    setActionButtonsState
-                );
-            }
-        });
-    }
-
-    // Add enable/disable button handlers
-    const enableBtn = document.getElementById('enableWebsite');
-    const disableBtn = document.getElementById('disableWebsite');
-
-    if (enableBtn) {
-        enableBtn.addEventListener('click', async () => {
-            const confirmed = await showConfirmation({
-                type: 'success',
-                icon: 'power',
-                title: 'Enable Website?',
-                message: 'This will enable all services for this website.',
-                confirmText: 'Enable'
-            });
-
-            if (confirmed) {
-                await handleServiceAction(
-                    () => API.enableWebsite(fullSiteName),
-                    'enableWebsite',
-                    'Enabling...',
-                    refreshServices,
-                    setActionButtonsState
-                );
-            }
-        });
-    }
-
-    if (disableBtn) {
-        disableBtn.addEventListener('click', async () => {
-            const confirmed = await showConfirmation({
-                type: 'danger',
-                icon: 'power',
-                title: 'Disable Website?',
-                message: 'This will disable all services for this website. The website will be unavailable.',
-                confirmText: 'Disable'
-            });
-
-            if (confirmed) {
-                await handleServiceAction(
-                    () => API.disableWebsite(fullSiteName),
-                    'disableWebsite',
-                    'Disabling...',
-                    refreshServices,
-                    setActionButtonsState
-                );
-            }
-        });
-    }
-
-    // Add restore backup button handler
-    const restoreBtn = document.getElementById('restoreBackup');
-    if (restoreBtn) {
-        restoreBtn.addEventListener('click', async () => {
-            await RestoreBackupModal.show(fullSiteName, {
-                handleServiceAction: (action, buttonId, loadingText) => {
-                    return handleServiceAction(
-                        action,
-                        buttonId,
-                        loadingText,
-                        refreshServices,
-                        setActionButtonsState
-                    );
-                }
-            });
-        });
-    }
-
-    // Add this handler for the Create Backup button
-    const startBackupBtn = document.getElementById('startBackup');
-    if (startBackupBtn) {
-        startBackupBtn.addEventListener('click', async () => {
+        // Function to refresh services and update buttons
+        const refreshServices = async () => {
             try {
+                const info = await API.get(`websites/${fullSiteName}/info`);
+                
+                // Update services container
+                const servicesContainer = document.getElementById('servicesContainer');
+                if (servicesContainer) {
+                    const servicesHtml = Object.entries({
+                        'Webserver': info.services.webserver,
+                        'Database': info.services.database,
+                        'phpMyAdmin': info.services.phpmyadmin,
+                        'SFTP': info.services.sftp,
+                        'Backup': info.services.backup
+                    }).map(([name, status]) => {
+                        return ServiceStatusCard.template(ServiceStatusCard.getStatusData(name, status));
+                    }).join('');
+                    
+                    servicesContainer.innerHTML = servicesHtml;
+                }
+
+                // Update button states based on new service status
+                const backupInProgress = info.services.backup.startsWith('In Progress');
+                const allDisabled = Object.values(info.services).every(status => status === 'Disabled');
+                const allUp = Object.values(info.services).every(status => status === 'Up');
+                const allDown = Object.values(info.services).every(status => status === 'Down' || status === 'Disabled');
+
+                const startBtn = document.getElementById('startWebsite');
+                const stopBtn = document.getElementById('stopWebsite');
+                const restartBtn = document.getElementById('restartWebsite');
+                const createBackupBtn = document.getElementById('startBackup');
+                const restoreBackupBtn = document.getElementById('restoreBackup');
+
+                if (startBtn) startBtn.disabled = allUp || allDisabled || backupInProgress;
+                if (stopBtn) stopBtn.disabled = allDown || allDisabled || backupInProgress;
+                if (restartBtn) restartBtn.disabled = allDisabled || backupInProgress;
+                if (createBackupBtn) createBackupBtn.disabled = allDisabled || allDown || backupInProgress;
+                if (restoreBackupBtn) restoreBackupBtn.disabled = allDisabled || allDown || backupInProgress;
+
+                return info.services;
+            } catch (error) {
+                showError(error, 'Failed to refresh services status');
+                throw error;
+            }
+        };
+
+        // Initial render
+        const info = await handleAPIRequest(
+            () => API.get(`websites/${fullSiteName}/info`),
+            'Failed to load website information'
+        );
+        
+        console.log('Frontend received info:', info);
+        
+        // If we have structured data, use it; otherwise use raw
+        const templateData = {
+            customerId: data.customerId,
+            siteName: data.siteName,
+            userData: window.userData,
+            services: info.services,
+            state: info.state
+        };
+
+        if (info.urls?.length || info.phpmyadmin?.url || info.sftp?.host || info.dns?.length) {
+            // Use structured data
+            Object.assign(templateData, {
+                urls: info.urls,
+                phpmyadmin: info.phpmyadmin,
+                sftp: info.sftp,
+                dns: info.dns
+            });
+        } else {
+            // Use raw data
+            templateData.raw = info.raw;
+        }
+
+        console.log('Template data being rendered:', templateData);
+        render(template, templateData);
+
+        // Add this line to initialize button states immediately after render
+        await refreshServices();
+
+        // Add refresh button handler
+        const refreshBtn = document.getElementById('refreshServices');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', async () => {
+                const icon = refreshBtn.querySelector('i');
+                refreshBtn.disabled = true;
+                icon.classList.add('ti-spin');
+                
+                await refreshServices();
+                
+                refreshBtn.disabled = false;
+                icon.classList.remove('ti-spin');
+            });
+        }
+
+        // Add restart button handler
+        const restartBtn = document.getElementById('restartWebsite');
+        if (restartBtn) {
+            restartBtn.addEventListener('click', async () => {
                 const confirmed = await showConfirmation({
-                    type: 'primary',
-                    icon: 'archive',
-                    title: 'Create Backup?',
-                    message: 'This will create a new backup of your website.',
-                    confirmText: 'Create Backup'
+                    type: 'warning',
+                    icon: 'refresh',
+                    title: 'Restart Website?',
+                    message: 'The website will be temporarily unavailable during the restart.',
+                    confirmText: 'Restart'
                 });
 
                 if (confirmed) {
-                    handleServiceAction(
-                        async () => { API.startBackup(fullSiteName); },
-                        'startBackup',
-                        'Creating Backup...',
+                    await handleServiceAction(
+                        () => API.restartWebsite(fullSiteName),
+                        'restartWebsite',
+                        'Restarting...',
                         refreshServices,
                         setActionButtonsState
                     );
                 }
-            } catch (error) {
-                showError(error, 'Failed to start backup');
-            }
-        });
-    }
-
-    // Add password toggle handlers
-    document.querySelectorAll('[data-action="toggle-password"]').forEach(button => {
-        button.addEventListener('click', () => {
-            const input = button.previousElementSibling;
-            const icon = button.querySelector('i');
-            
-            if (input.type === 'password') {
-                input.type = 'text';
-                icon.classList.remove('ti-eye');
-                icon.classList.add('ti-eye-off');
-            } else {
-                input.type = 'password';
-                icon.classList.remove('ti-eye-off');
-                icon.classList.add('ti-eye');
-            }
-        });
-    });
-
-    // Add delete button handler
-    const deleteBtn = document.getElementById('deleteWebsite');
-    if (deleteBtn) {
-        deleteBtn.addEventListener('click', async () => {
-            const siteName = data.siteName;
-            const confirmed = await showConfirmation({
-                type: 'danger',
-                icon: 'trash',
-                title: 'Delete Website?',
-                message: `This action cannot be undone. All data, including backups, will be permanently deleted.
-                         <div class="alert alert-danger mt-3">
-                             <div class="mb-2">To confirm, please type "DELETE ${siteName}" below:</div>
-                             <input type="text" class="form-control" id="deleteConfirmation" 
-                                    placeholder="Type confirmation here">
-                         </div>`,
-                confirmText: 'Delete Website',
-                verificationText: `DELETE ${siteName}`
             });
+        }
 
-            if (confirmed) {
-                try {
-                    await API.deleteWebsite(fullSiteName);
-                    Notifications.success('Website deleted successfully');
-                    // Navigate back to websites list
-                    window.router.navigate(`/websites/${data.customerId}`);
-                } catch (error) {
-                    showError(error, 'Failed to delete website');
+        // Add start button handler
+        const startBtn = document.getElementById('startWebsite');
+        if (startBtn) {
+            startBtn.addEventListener('click', async () => {
+                const confirmed = await showConfirmation({
+                    type: 'success',
+                    icon: 'player-play',
+                    title: 'Start Website?',
+                    message: 'All services will be started.',
+                    confirmText: 'Start'
+                });
+
+                if (confirmed) {
+                    await handleServiceAction(
+                        () => API.startWebsite(fullSiteName),
+                        'startWebsite',
+                        'Starting...',
+                        refreshServices,
+                        setActionButtonsState
+                    );
                 }
-            }
+            });
+        }
+
+        // Add stop button handler
+        const stopBtn = document.getElementById('stopWebsite');
+        if (stopBtn) {
+            stopBtn.addEventListener('click', async () => {
+                const confirmed = await showConfirmation({
+                    type: 'danger',
+                    icon: 'player-stop',
+                    title: 'Stop Website?',
+                    message: 'All services will be stopped. The website will be unavailable.',
+                    confirmText: 'Stop'
+                });
+
+                if (confirmed) {
+                    await handleServiceAction(
+                        () => API.stopWebsite(fullSiteName),
+                        'stopWebsite',
+                        'Stopping...',
+                        refreshServices,
+                        setActionButtonsState
+                    );
+                }
+            });
+        }
+
+        // Add enable/disable button handlers
+        const enableBtn = document.getElementById('enableWebsite');
+        const disableBtn = document.getElementById('disableWebsite');
+
+        if (enableBtn) {
+            enableBtn.addEventListener('click', async () => {
+                const confirmed = await showConfirmation({
+                    type: 'success',
+                    icon: 'power',
+                    title: 'Enable Website?',
+                    message: 'This will enable all services for this website.',
+                    confirmText: 'Enable'
+                });
+
+                if (confirmed) {
+                    await handleServiceAction(
+                        () => API.enableWebsite(fullSiteName),
+                        'enableWebsite',
+                        'Enabling...',
+                        refreshServices,
+                        setActionButtonsState
+                    );
+                }
+            });
+        }
+
+        if (disableBtn) {
+            disableBtn.addEventListener('click', async () => {
+                const confirmed = await showConfirmation({
+                    type: 'danger',
+                    icon: 'power',
+                    title: 'Disable Website?',
+                    message: 'This will disable all services for this website. The website will be unavailable.',
+                    confirmText: 'Disable'
+                });
+
+                if (confirmed) {
+                    await handleServiceAction(
+                        () => API.disableWebsite(fullSiteName),
+                        'disableWebsite',
+                        'Disabling...',
+                        refreshServices,
+                        setActionButtonsState
+                    );
+                }
+            });
+        }
+
+        // Add restore backup button handler
+        const restoreBtn = document.getElementById('restoreBackup');
+        if (restoreBtn) {
+            restoreBtn.addEventListener('click', async () => {
+                await RestoreBackupModal.show(fullSiteName, {
+                    handleServiceAction: (action, buttonId, loadingText) => {
+                        return handleServiceAction(
+                            action,
+                            buttonId,
+                            loadingText,
+                            refreshServices,
+                            setActionButtonsState
+                        );
+                    }
+                });
+            });
+        }
+
+        // Add this handler for the Create Backup button
+        const startBackupBtn = document.getElementById('startBackup');
+        if (startBackupBtn) {
+            startBackupBtn.addEventListener('click', async () => {
+                try {
+                    const confirmed = await showConfirmation({
+                        type: 'primary',
+                        icon: 'archive',
+                        title: 'Create Backup?',
+                        message: 'This will create a new backup of your website.',
+                        confirmText: 'Create Backup'
+                    });
+
+                    if (confirmed) {
+                        handleServiceAction(
+                            async () => { API.startBackup(fullSiteName); },
+                            'startBackup',
+                            'Creating Backup...',
+                            refreshServices,
+                            setActionButtonsState
+                        );
+                    }
+                } catch (error) {
+                    showError(error, 'Failed to start backup');
+                }
+            });
+        }
+
+        // Add password toggle handlers
+        document.querySelectorAll('[data-action="toggle-password"]').forEach(button => {
+            button.addEventListener('click', () => {
+                const input = button.previousElementSibling;
+                const icon = button.querySelector('i');
+                
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    icon.classList.remove('ti-eye');
+                    icon.classList.add('ti-eye-off');
+                } else {
+                    input.type = 'password';
+                    icon.classList.remove('ti-eye-off');
+                    icon.classList.add('ti-eye');
+                }
+            });
+        });
+
+        // Add delete button handler
+        const deleteBtn = document.getElementById('deleteWebsite');
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', async () => {
+                const siteName = data.siteName;
+                const confirmed = await showConfirmation({
+                    type: 'danger',
+                    icon: 'trash',
+                    title: 'Delete Website?',
+                    message: `This action cannot be undone. All data, including backups, will be permanently deleted.
+                             <div class="alert alert-danger mt-3">
+                                 <div class="mb-2">To confirm, please type "DELETE ${siteName}" below:</div>
+                                 <input type="text" class="form-control" id="deleteConfirmation" 
+                                        placeholder="Type confirmation here">
+                             </div>`,
+                    confirmText: 'Delete Website',
+                    verificationText: `DELETE ${siteName}`
+                });
+
+                if (confirmed) {
+                    try {
+                        // Show progress modal
+                        const progressModal = ProgressModal.show({
+                            title: 'Deleting Website',
+                            message: 'Please wait while we delete the website and all associated data. This may take several minutes.',
+                            icon: 'trash',
+                            color: 'danger'
+                        });
+                        progressModal.show();
+
+                        await API.deleteWebsite(fullSiteName);
+                        
+                        // Hide progress modal
+                        progressModal.hide();
+                        
+                        Notifications.success('Website deleted successfully');
+                        
+                        // Reload the page - this will trigger the router to redirect since the site no longer exists
+                        window.location.reload();
+                    } catch (error) {
+                        // Hide progress modal if it's still showing
+                        progressModal?.hide();
+                        
+                        // Show error notification with the specific error message from the API
+                        showError(error, 'Failed to delete website');
+                    }
+                }
+            });
+        }
+    } catch (error) {
+        // Show "Website Not Found" message
+        render(Handlebars.compile(`
+            <div class="page-header d-print-none">
+                <div class="container-xl">
+                    <div class="row g-2 align-items-center">
+                        <div class="col">
+                            <div class="page-pretitle">
+                                <a href="/websites/{{customerId}}" data-navigo class="text-muted">
+                                    <i class="ti ti-arrow-left"></i> Back to Websites
+                                </a>
+                            </div>
+                            <h2 class="page-title">
+                                <i class="ti ti-alert-triangle text-warning me-2"></i>
+                                Website Not Found
+                            </h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="page-body">
+                <div class="container-xl">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="empty">
+                                <div class="empty-icon">
+                                    <i class="ti ti-database-off"></i>
+                                </div>
+                                <p class="empty-title">Website Not Found</p>
+                                <p class="empty-subtitle text-muted">
+                                    The website you're looking for does not exist or has been deleted.
+                                </p>
+                                <div class="empty-action">
+                                    <a href="/websites/{{customerId}}" class="btn btn-primary" data-navigo>
+                                        <i class="ti ti-arrow-left me-2"></i>
+                                        Back to Websites
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `), {
+            customerId: data.customerId
         });
     }
 };

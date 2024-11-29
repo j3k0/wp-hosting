@@ -13,6 +13,7 @@ export const Layout = {
                             Fovea.Hosting
                         </a>
                     </h1>
+                    {{#if userData.username}}
                     <div class="collapse navbar-collapse" id="navbar-menu">
                         <div class="d-flex flex-column flex-md-row flex-fill align-items-stretch align-items-md-center">
                             <ul class="navbar-nav">
@@ -86,6 +87,7 @@ export const Layout = {
                             </div>
                         </div>
                     </div>
+                    {{/if}}
                 </div>
             </header>
             <div class="page-wrapper">
