@@ -2,6 +2,8 @@
 
 . _scripts/base.sh
 
+echo "=== Starting initialization for project: $PROJECT ==="
+
 # Generate the docker-compose.yml file
 if test -e $PROJECT/docker-compose.yml; then
     echo "Project $PROJECT already has a docker-compose.yml file."
@@ -12,53 +14,59 @@ if test -e $PROJECT/docker-compose.yml; then
     exit 1
 fi
 
-echo Make sure docker image is built and up to date
+echo "=== Building and updating Docker images ==="
+echo "Make sure docker image is built and up to date"
 docker pull wordpress
 docker pull wordpress:php7.1
 docker build -t fovea/wordpress docker
 
-echo Make sure all necessary hosting files are in place
+echo "=== Configuring hosting files ==="
+echo "Make sure all necessary hosting files are in place"
 ./configure.sh
 
-echo Generate project files
+echo "=== Generating project files ==="
+echo "Generating docker-compose.yml..."
 ./_scripts/docker-compose.yml.sh > $PROJECT/docker-compose.yml
+echo "Generating nginx-site config..."
 ./_scripts/nginx-site.sh > $PROJECT/nginx-site
+echo "Generating php.ini..."
 ./_scripts/php.ini.sh > $PROJECT/php.ini
 
-echo Setup domain name with cloudflare
+echo "=== Setting up DNS records ==="
+echo "Setup domain name with cloudflare"
 ./create-dns-records.sh $PROJECT
 
-sudo mkdir -p /backups/$PROJECT
+echo "=== Creating backup directory ==="
+mkdir -p /backups/$PROJECT
+echo "Backup directory created: /backups/$PROJECT"
 
-# echo Setup OVH CDN
-# echo "Add www.$DOMAIN to OVH CDN? (y/N)"
-# read ANSWER
-# if [ "x$ANSWER" = "xy" ] || [ "x$ANSWER" = "xY" ]; then ./ovhcdn.sh www.$DOMAIN; fi
-# echo "Add $DOMAIN to OVH CDN? (y/N)"
-# read ANSWER
-# if [ "x$ANSWER" = "xy" ] || [ "x$ANSWER" = "xY" ]; then ./ovhcdn.sh $DOMAIN; fi
-
-echo Install the nginx config
+echo "=== Setting up Nginx configuration ==="
 if test -d /etc/nginx/sites-enabled && ! test -e /etc/nginx/sites-enabled/$PROJECT; then
-    echo "Installing /etc/nginx/sites-enabled/$PROJECT"
-    ln -s $(pwd)/$PROJECT/nginx-site /etc/nginx/sites-enabled/$PROJECT
+    if [ -w "/etc/nginx/sites-enabled" ]; then
+        echo "Installing /etc/nginx/sites-enabled/$PROJECT"
+        ln -s $(pwd)/$PROJECT/nginx-site /etc/nginx/sites-enabled/$PROJECT
+    else
+        echo "Warning: No write access to /etc/nginx/sites-enabled, skipping"
+    fi
 else
-    echo "Skip..."
+    echo "Skip nginx config (already exists or sites-enabled not found)"
 fi
 
-echo MySQL needs time to start
+echo "=== Starting MySQL ==="
+echo "MySQL needs time to start"
 ./docker-compose.sh $PROJECT up -d db
 echo "Waiting 60s for mysql to be ready"
 sleep 60
 
-# phpMyAdmin
+echo "=== Configuring phpMyAdmin ==="
 echo "Create phpMyAdmin database user"
-docker run --rm -it --network=${APPNAME}_default --link ${APPNAME}_db_1:db mysql mysql -hdb -uroot -p$ROOT_PASSWORD -e "GRANT ALL PRIVILEGES ON phpmyadmin.* TO 'admin'@'%';"
+docker run --rm -i --network=${APPNAME}_default --link ${APPNAME}_db_1:db mysql mysql -hdb -uroot -p$ROOT_PASSWORD -e "GRANT ALL PRIVILEGES ON phpmyadmin.* TO 'admin'@'%';"
 
-# Generate the docker-compose override file
-# (potentially disabling SQL and phpmyadmin now, but at least its setup)
+echo "=== Generating docker-compose override ==="
+echo "Generate the docker-compose override file"
 ./_scripts/docker-compose.override.yml.sh > $PROJECT/docker-compose.override.yml
 
+echo "=== Initialization complete ==="
 echo "You can now start the server with the command below:"
 echo
 echo "    ./start.sh $PROJECT"

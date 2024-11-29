@@ -5,6 +5,7 @@ const { logger } = require('./utils/logger');
 const execAsync = util.promisify(exec);
 const Convert = require('ansi-to-html');
 const { formatBytes } = require('./utils/formatBytes');
+const fs = require('fs');
 
 // Path to the wp-hosting scripts directory
 const SCRIPTS_DIR = path.join(__dirname, '../../');
@@ -151,6 +152,14 @@ class Commands {
     async getWebsiteInfo(siteName) {
         logger.info('Getting website info', { siteName });
         try {
+            // Check if project directory exists first
+            if (!fs.existsSync(`/apps/wp-hosting/${siteName}`)) {
+                logger.debug('Website directory not found', { siteName });
+                const error = new Error('Website not found');
+                error.status = 404;
+                throw error;
+            }
+
             const [infoOutput, statuses] = await Promise.all([
                 this.executeScript('info', [siteName]),
                 this.getServiceStatuses(siteName)
@@ -168,14 +177,25 @@ class Commands {
                 services: statuses
             };
         } catch (error) {
+            // If we already set a status, preserve it
+            if (!error.status) {
+                // For command execution errors, check if it's a "not found" case
+                if (error.code === 1 && error.stdout?.includes('project already has a config file')) {
+                    error.status = 404;
+                    error.message = 'Website not found';
+                } else {
+                    error.status = 500;
+                }
+            }
             logger.error('Failed to get website info', {
                 siteName,
                 error: {
                     message: error.message,
-                    code: error.code
+                    code: error.code,
+                    status: error.status
                 }
             });
-            throw new Error('Failed to get website information');
+            throw error;
         }
     }
 

@@ -1,6 +1,8 @@
 import { API } from '../modules/api.js';
 import { render } from '../main.js';
 import { showConfirmation, Notifications, formatBytes, showError, handleAPIRequest } from '../modules/utils.js';
+import { DeployWebsiteModal } from '../modals/modal-deploy-website.js';
+import { ProgressModal } from '../modals/modal-progress.js';
 
 const template = Handlebars.compile(`
     <div class="page-header d-print-none">
@@ -20,12 +22,22 @@ const template = Handlebars.compile(`
                     </h2>
                 </div>
                 {{#if (or userData.isAdmin userData.isTeamAdmin)}}
-                <div class="col-auto">
+                
+                <div class="col-auto me-3">
                     <select class="form-select" id="websiteFilter">
                         <option value="all" {{#if (eq filter "all")}}selected{{/if}}>All Sites</option>
                         <option value="enabled" {{#if (eq filter "enabled")}}selected{{/if}}>Enabled Sites</option>
                         <option value="disabled" {{#if (eq filter "disabled")}}selected{{/if}}>Disabled Sites</option>
                     </select>
+                </div>
+
+                <div class="col-auto ms-auto d-print-none">
+                    <div class="btn-list">
+                        <button class="btn btn-primary d-none d-sm-inline-block" data-action="deploy-website">
+                            <i class="ti ti-plus"></i>
+                            Deploy Website
+                        </button>
+                    </div>
                 </div>
                 {{/if}}
             </div>
@@ -165,6 +177,96 @@ const handler = async ({ data }) => {
                 }
             });
         });
+
+        // Add deploy button handler
+        const deployButton = document.querySelector('[data-action="deploy-website"]');
+        if (deployButton) {
+            deployButton.addEventListener('click', async () => {
+                try {
+                    const result = await DeployWebsiteModal.show(window.userData);
+                    if (result) {
+                        const { domain, siteName, type } = result;
+                        
+                        // Show progress modal
+                        const progressModal = ProgressModal.show({
+                            title: 'Deploying Website',
+                            message: 'Initializing deployment...',
+                            icon: 'rocket',
+                            color: 'primary'
+                        });
+                        progressModal.show();
+
+                        // Add a function to check deploy log
+                        const checkDeployLog = async (siteName) => {
+                            try {
+                                const response = await fetch(`/api/websites/${siteName}/deploy-log`);
+                                if (response.ok) {
+                                    const log = await response.text();
+                                    // Update progress modal message with last line of log
+                                    const lines = log.split('\n');
+                                    const lastLine = lines[lines.length - 2] || lines[lines.length - 1];
+                                    if (lastLine) {
+                                        progressModal._element.querySelector('.text-muted').textContent = lastLine;
+                                    }
+                                }
+                            } catch (error) {
+                                console.log('Error checking deploy log:', error);
+                            }
+                        };
+
+                        try {
+                            // Start deployment
+                            await API.deployWebsite(domain, siteName, type);
+                            
+                            // Start polling for website status
+                            const maxAttempts = 60; // 2 minutes
+                            let attempts = 0;
+                            
+                            while (attempts < maxAttempts) {
+                                try {
+                                    // Update progress message
+                                    progressModal._element.querySelector('.text-muted').textContent = 
+                                        `Waiting for services to start (attempt ${attempts + 1}/${maxAttempts})...`;
+
+                                    const info = await API.get(`websites/${siteName}/info`);
+                                    if (info.services?.webserver === 'Up' && info.services?.database === 'Up') {
+                                        // Site is ready
+                                        break;
+                                    }
+                                } catch (error) {
+                                    // Check deploy log while waiting
+                                    await checkDeployLog(siteName);
+                                }
+                                
+                                // Wait 2 seconds before next attempt
+                                await new Promise(resolve => setTimeout(resolve, 2000));
+                                attempts++;
+                            }
+
+                            // Hide progress modal
+                            progressModal.hide();
+                            
+                            // Extract the base site name for navigation
+                            const baseSiteName = siteName.split('.').slice(2).join('.');
+                            
+                            // Refresh the website list
+                            await loadWebsites('all');
+                            
+                            // Show success notification
+                            Notifications.success('Website deployed successfully');
+                            
+                            // Navigate to the new website's info page
+                            window.router.navigate(`/websites/${data.customerId}/info/${baseSiteName}`);
+                        } catch (error) {
+                            progressModal.hide();
+                            throw error;
+                        }
+                    }
+                } catch (error) {
+                    showError(error, 'Failed to deploy website');
+                }
+            });
+        }
     };
 
     // Initial load with appropriate filter

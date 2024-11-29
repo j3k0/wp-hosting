@@ -205,4 +205,24 @@ export function formatDisplayUsername(username) {
         .join('');
 
     return formatted;
+}
+
+// Add these validation functions
+export function isValidDomain(domain) {
+    // Allow subdomains, each part must:
+    // - Start and end with alphanumeric
+    // - Can contain hyphens
+    // - Be between 1 and 63 chars
+    // - Total length <= 253 chars
+    const parts = domain.split('.');
+    if (parts.length < 2) return false;
+    
+    const validPart = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/;
+    return parts.every(part => validPart.test(part)) && domain.length <= 253;
+}
+
+export function isValidSiteName(siteName) {
+    // Similar to domain but also allows dots within parts
+    // This is less strict than domain validation since it's our internal naming
+    return /^[a-z0-9]([a-z0-9-.]){0,61}[a-z0-9]$/.test(siteName);
 } 

@@ -216,6 +216,26 @@ app.get('/api/websites/:siteName/backups', auth.authenticate, websites.listBacku
 app.post('/api/websites/:siteName/restore', auth.authenticate, websites.restoreBackup);
 app.get('/api/websites/:siteName/backups/size', auth.authenticate, websites.getBackupSize);
 app.delete('/api/websites/:siteName', auth.authenticate, asyncHandler(websites.deleteWebsite));
+app.post('/api/websites/deploy', auth.authenticateTeamAdmin, asyncHandler(websites.deployWebsite));
+app.get('/api/websites/:siteName/deploy-log', auth.authenticate, async (req, res) => {
+    const siteName = req.params.siteName;
+    const logPath = `/apps/wp-hosting/${siteName}/deploy.log`;
+    
+    try {
+        if (fs.existsSync(logPath)) {
+            const log = fs.readFileSync(logPath, 'utf8');
+            // Filter for lines starting with "==="
+            const structuredLines = log.split('\n')
+                .filter(line => line.trim().startsWith('==='))
+                .join('\n');
+            res.send(structuredLines);
+        } else {
+            res.send('Deployment log not available');
+        }
+    } catch (error) {
+        res.status(500).send('Error reading deployment log');
+    }
+});
 
 // User routes
 app.get('/api/users', auth.authenticateTeamAdmin, auth.listUsers);

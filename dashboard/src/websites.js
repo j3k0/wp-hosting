@@ -1,6 +1,34 @@
 const commands = require('./commands');
 const diskUsage = require('./disk-usage');
 const { logger } = require('./utils/logger');
+const { execAsync } = require('./utils/exec');
+const fs = require('fs');
+const { exec } = require('child_process');
+
+// Add validation functions at the top of the file
+function isValidDomain(domain) {
+    // Allow subdomains, each part must:
+    // - Start and end with alphanumeric
+    // - Can contain hyphens
+    // - Be between 1 and 63 chars
+    // - Total length <= 253 chars
+    const parts = domain.split('.');
+    if (parts.length < 2) return false;
+    
+    const validPart = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/;
+    return parts.every(part => validPart.test(part)) && domain.length <= 253;
+}
+
+function isValidSiteName(siteName) {
+    // Similar to domain but also allows dots within parts
+    // This is less strict than domain validation since it's our internal naming
+    return /^[a-z0-9]([a-z0-9-.]){0,61}[a-z0-9]$/.test(siteName);
+}
+
+function sanitizeInput(input) {
+    // Remove any characters that aren't lowercase alphanumeric, dots, or dashes
+    return input.toLowerCase().replace(/[^a-z0-9.-]/g, '');
+}
 
 const websites = {
     async listWebsites(req, res) {
@@ -200,12 +228,14 @@ const websites = {
             logger.error('Failed to get website info', {
                 error: {
                     message: error.message,
+                    code: error.code,
+                    status: error.status,
                     stack: error.stack
                 },
                 siteName: req.params.siteName,
                 userId: req.user.username
             });
-            res.status(500).json({ error: 'Failed to get website information' });
+            res.status(error.status || 500).json({ error: error.message });
         }
     },
 
@@ -773,6 +803,124 @@ const websites = {
                 : 'Failed to delete website';
                 
             res.status(500).json({ error: errorMessage });
+        }
+    },
+
+    async deployWebsite(req, res) {
+        try {
+            let { domain, siteName, type } = req.body;
+            const isAdmin = req.user.isAdmin;
+            const userClientId = req.user.clientId;
+
+            // Basic validation
+            if (!domain || !siteName || !type) {
+                return res.status(400).json({ error: 'Missing required parameters' });
+            }
+
+            // Sanitize and validate domain
+            domain = sanitizeInput(domain.toLowerCase().replace(/^www\./, ''));
+            if (!isValidDomain(domain)) {
+                return res.status(400).json({ error: 'Invalid domain format' });
+            }
+
+            // Sanitize and validate site name
+            siteName = sanitizeInput(siteName.toLowerCase());
+            if (!isValidSiteName(siteName)) {
+                return res.status(400).json({ error: 'Invalid site name format' });
+            }
+
+            // Validate type
+            if (!['php', 'wordpress'].includes(type)) {
+                return res.status(400).json({ error: 'Invalid site type' });
+            }
+
+            // Extract client ID from site name
+            const siteNameParts = siteName.split('.');
+            if (siteNameParts.length < 3 || siteNameParts[0] !== 'wp') {
+                return res.status(400).json({ error: 'Invalid site name format: must start with wp.<client_id>' });
+            }
+            const requestedClientId = siteNameParts[1];
+
+            // For team admins, ensure they can only deploy to their assigned client ID
+            if (!isAdmin && requestedClientId !== userClientId) {
+                logger.warn('Unauthorized deployment attempt with incorrect client ID', {
+                    requestedClientId,
+                    userClientId,
+                    username: req.user.username
+                });
+                return res.status(403).json({ 
+                    error: 'Access denied: You can only deploy websites for your assigned client ID'
+                });
+            }
+
+            // Setup logging
+            const deployLogPath = `/apps/wp-hosting/${siteName}/deploy.log`;
+            const deployDir = `/apps/wp-hosting/${siteName}`;
+            
+            // Create directory if it doesn't exist
+            if (!fs.existsSync(deployDir)) {
+                fs.mkdirSync(deployDir, { recursive: true });
+            }
+
+            logger.info('Website deployment initiated', {
+                domain,
+                siteName,
+                type,
+                requestedBy: req.user.username,
+                clientId: requestedClientId,
+                logPath: deployLogPath
+            });
+
+            // Execute deployment script with logging
+            const deployProcess = exec(
+                `/apps/wp-hosting/deploy.sh "${siteName}" "${domain}" "${type}"`,
+                { 
+                    maxBuffer: 10 * 1024 * 1024,
+                    shell: '/bin/bash',
+                    cwd: '/apps/wp-hosting'
+                }
+            );
+
+            // Setup log file streams
+            const logStream = fs.createWriteStream(deployLogPath);
+            
+            // Pipe outputs to log file
+            deployProcess.stdout.pipe(logStream);
+            deployProcess.stderr.pipe(logStream);
+
+            // Wait for process to complete
+            try {
+                await new Promise((resolve, reject) => {
+                    deployProcess.on('exit', (code) => {
+                        if (code === 0) {
+                            resolve();
+                        } else {
+                            reject(new Error(`deploy.sh exited with code ${code}`));
+                        }
+                    });
+                    deployProcess.on('error', reject);
+                });
+            } catch (error) {
+                logger.error('deploy.sh failed', {
+                    error,
+                    logPath: deployLogPath
+                });
+                throw error;
+            }
+            res.status(200).json({ message: 'Website deployment successful' });
+
+        } catch (error) {
+            logger.error('Failed to deploy website', {
+                error: {
+                    message: error.message,
+                    code: error.code,
+                    stack: error.stack,
+                    stdout: error.stdout,
+                    stderr: error.stderr
+                },
+                requestedBy: req.user.username
+            });
+            res.status(500).json({ error: 'Failed to deploy website: ' + error.message });
         }
     }
 };

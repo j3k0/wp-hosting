@@ -14,6 +14,11 @@ export const API = {
             const data = await response.json();
 
             if (!response.ok) {
+                // For 404s, include status code in error message for easier checking
+                if (response.status === 404) {
+                    throw new Error(`404: ${data.error || 'Not found'}`);
+                }
+                
                 // For login errors, throw the specific error message
                 if (endpoint === 'login') {
                     throw new Error(data.error || 'Login failed');
@@ -98,5 +103,9 @@ export const API = {
 
     async deleteWebsite(siteName) {
         return this.delete(`websites/${siteName}`);
+    },
+
+    async deployWebsite(domain, siteName, type) {
+        return this.post('websites/deploy', { domain, siteName, type });
     }
 }; 
